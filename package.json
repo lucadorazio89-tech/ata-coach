@@ -1,0 +1,13 @@
+{
+  "name": "ata-coach",
+  "version": "0.1.0",
+  "description": "Assistente di studio autonomo per le procedure ATA (Assistente Amministrativo). Local-first, funziona senza AI.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "build": "node build.mjs",
+    "start": "node build.mjs && node serve.mjs"
+  },
+  "engines": { "node": ">=18" }
+}
