@@ -541,7 +541,8 @@ VIEWS.settings = () => {
     <p>Arrivano anche ad app chiusa: promemoria giornaliero e novità dalle fonti ufficiali. Richiedono l'app pubblicata su GitHub (vedi GUIDA.md). Su iPhone, prima aggiungi l'app alla schermata Home.</p>
     ${ONLINE_APP ? `<details><summary>Le notifiche sono già attive su un altro dispositivo</summary><p class="muted small">Incolla qui i valori VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY usati sull'altro dispositivo (li trovi nella sua schermata di configurazione o nel file salvato), poi premi «Configura».</p>
       <label class="field">VAPID_PUBLIC_KEY<input id="vapid-pub" autocomplete="off" spellcheck="false"></label><label class="field">VAPID_PRIVATE_KEY<input id="vapid-priv" type="password" autocomplete="off"></label></details>
-      <button class="btn" data-act="pushSetup">Configura le notifiche push</button>` : '<p class="muted small">Disponibile solo nella versione pubblicata online.</p>'}
+      <button class="btn" data-act="pushSetup">Configura le notifiche push</button> <button class="btn" data-act="pushDiag">Controlla questo dispositivo</button>
+      ${ui.pushDiag ? `<div class="pushbox">${ui.pushDiag.map(x => `<p>${esc(x)}</p>`).join('')}</div>` : ''}` : '<p class="muted small">Disponibile solo nella versione pubblicata online.</p>'}
     ${ui.push ? `<div class="pushbox"><p>Copia questi tre valori nei «Secrets» del repository GitHub (Settings → Secrets and variables → Actions → New repository secret):</p>
       ${[['VAPID_PUBLIC_KEY', ui.push.pub], ['VAPID_PRIVATE_KEY', ui.push.priv], ['PUSH_SUBSCRIPTION', ui.push.sub]].map(([k, v]) => `<label class="field">${k}<textarea rows="${k === 'PUSH_SUBSCRIPTION' ? 4 : 2}" readonly>${esc(v)}</textarea></label><button class="btn" data-act="copyVal" data-v="${esc(v)}">Copia ${k}</button>`).join('')}
       <p class="muted small">Poi, su GitHub, apri Actions → «Promemoria di studio» → Run workflow per provare.</p></div>` : ''}</section>
@@ -691,6 +692,21 @@ A.genQuestions = async () => {
 };
 A.delOrigin = d => { if (!confirm('Eliminare le domande «' + d.o + '»?')) return; store.mutate(s => { const now = Date.now(); for (const q of s.customQuestions) if (q.origin === d.o) s.tombstones[q.id] = now; s.customQuestions = s.customQuestions.filter(q => q.origin !== d.o); }); render(); };
 A.exportPack = () => { const t = exportPack(S().customQuestions, 'Domande di ' + (S().user?.name || 'ATA Coach')); download('ata-coach-pacchetto-' + dayKey() + '.json', t, 'application/json'); };
+A.pushDiag = async () => {
+  const out = [];
+  try {
+    const perm = typeof Notification === 'undefined' ? 'non supportate' : Notification.permission;
+    out.push('Permesso notifiche: ' + ({ granted: 'concesso', denied: 'NEGATO (riattivalo dalle impostazioni del browser per questo sito)', default: 'non ancora chiesto' }[perm] || perm) + '.');
+    out.push('Aperta come app installata: ' + (matchMedia('(display-mode: standalone)').matches || navigator.standalone ? 'sì' : 'no (su iPhone le notifiche funzionano solo dall\'icona)') + '.');
+    const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : null;
+    if (!reg) { out.push('Service worker: non attivo. Chiudi e riapri l\'app.'); ui.pushDiag = out; render(); return; }
+    const sub = reg.pushManager ? await reg.pushManager.getSubscription() : null;
+    if (sub) { const u = new URL(sub.endpoint); out.push(`Codice di questo dispositivo: ${u.hostname} …${sub.endpoint.slice(-8)}. Confrontalo con la riga «Invio a:» nel registro di GitHub Actions: devono essere uguali.`); }
+    else out.push('Questo dispositivo non è iscritto alle notifiche: premi «Configura le notifiche push».');
+    if (perm === 'granted') { await reg.showNotification('ATA Coach – prova', { body: 'Se vedi questo messaggio, il telefono sa mostrare le notifiche dell\'app.', icon: './icon.svg', tag: 'prova' }); out.push('Ho mostrato una notifica di prova: se non la vedi, il blocco è nelle impostazioni del telefono.'); }
+  } catch (e) { out.push('Errore: ' + (e.message || e)); }
+  ui.pushDiag = out; render();
+};
 A.pushSetup = async () => {
   try {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) { toast('Questo browser non supporta le notifiche push. Su iPhone aggiungi prima l\'app alla schermata Home.'); return; }
