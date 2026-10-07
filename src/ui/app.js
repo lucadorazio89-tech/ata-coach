@@ -717,8 +717,11 @@ A.pushSetup = async () => {
     if (!keys) keys = await generateVapidKeys();
     store.mutate(s => { s.settings.vapid = keys; s.settings.notifications = true; });
     const reg = await navigator.serviceWorker.ready;
-    const old = await reg.pushManager.getSubscription(); if (old) await old.unsubscribe();
-    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(keys.publicKey) });
+    // Se il dispositivo è già iscritto con le stesse chiavi, riuso il codice: così quello salvato su GitHub resta valido.
+    let sub = await reg.pushManager.getSubscription();
+    const sameKey = sub && sub.options && sub.options.applicationServerKey && bytesToB64u(new Uint8Array(sub.options.applicationServerKey)) === keys.publicKey;
+    if (sub && !sameKey) { await sub.unsubscribe(); sub = null; }
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(keys.publicKey) });
     ui.push = { pub: keys.publicKey, priv: keys.privateKey, sub: JSON.stringify(sub) }; render();
   } catch (e) { toast('Configurazione non riuscita: ' + (e.message || e)); }
 };
