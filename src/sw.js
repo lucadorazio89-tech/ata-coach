@@ -1,5 +1,5 @@
 // Service worker: app offline + notifiche push personalizzate con i dati locali.
-const CACHE = 'ata-coach-v3';
+const CACHE = 'ata-coach-v4';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './ui/styles.css', './ui/app.js',
   './core/util.js', './core/store.js', './content/seed.js', './engine/srs.js', './engine/learning.js', './engine/quiz.js',
   './engine/scheduler.js', './engine/reporting.js', './engine/bando.js', './engine/packs.js', './core/sync.js', './ai/ai.js'];
@@ -25,6 +25,10 @@ self.addEventListener('fetch', e => {
 });
 
 function readState() {
+  const timeout = new Promise(resolve => setTimeout(() => resolve(null), 1500));   // se i dati locali non rispondono, la notifica parte lo stesso
+  return Promise.race([timeout, readStateRaw()]);
+}
+function readStateRaw() {
   return new Promise(resolve => {
     const r = indexedDB.open('ata-coach', 1);
     r.onupgradeneeded = () => r.result.createObjectStore('kv');
@@ -38,7 +42,7 @@ self.addEventListener('push', e => {
   let data = {}; try { data = e.data ? e.data.json() : {}; } catch { data = { body: e.data && e.data.text() }; }
   e.waitUntil((async () => {
     let title = data.title || 'ATA Coach', body = data.body || 'Apri ATA Coach.';
-    if (data.kind === 'reminder') {
+    if (data.kind === 'reminder') try {
       const st = await readState(), today = dayKey(Date.now());
       if (st) {
         const mins = (st.sessions || []).filter(s => dayKey(s.startedAt) === today).reduce((a, s) => a + ((s.report && s.report.minutes) || 0), 0);
@@ -46,8 +50,8 @@ self.addEventListener('push', e => {
         if (mins > 0) { title = 'Oggi hai già studiato'; body = `${mins} minuti fatti. Brava. Domani si continua.`; }
         else body = plan || 'Hai qualche minuto? Premi Fai tu, decido io cosa studiare.';
       }
-    }
-    await self.registration.showNotification(title, { body, icon: './icon.svg', badge: './icon.svg', tag: data.kind || 'ata', data: { url: data.url || './' } });
+    } catch { /* uso il testo predefinito */ }
+    await self.registration.showNotification(title, { body, icon: './icon.svg', tag: data.kind || 'ata', renotify: true, data: { url: data.url || './' } });
   })());
 });
 
