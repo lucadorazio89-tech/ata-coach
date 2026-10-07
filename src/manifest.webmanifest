@@ -1,0 +1,11 @@
+{
+  "name": "ATA Coach",
+  "short_name": "ATA Coach",
+  "description": "Ti prepara alle procedure ATA. Organizza tutto lui.",
+  "lang": "it",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#F5F6FA",
+  "theme_color": "#2C3A92",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
