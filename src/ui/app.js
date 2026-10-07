@@ -49,19 +49,18 @@ async function runSync() {
   if (!syncOn() || syncing) return null;
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return null;
   syncing = true; clearTimeout(syncTimer); syncTimer = null;
+  const hadUser = !!S().user;
+  let r = null;
   try {
     const gh = new GitHubSync({ token: S().sync.token, repo: S().sync.repo });
-    const hadUser = !!S().user;
-    const r = await syncNow(store.state, gh, { save: () => store.save() });
-    if (!hadUser && S().user && view.name === 'onboarding') go('home');
-    else if (view.name !== 'run' && (r.changedLocal || ['home', 'settings'].includes(view.name))) render();
-    return r;
+    r = await syncNow(store.state, gh, { save: () => store.save() });
   } catch (e) {
     store.state.sync.lastError = { code: e.code || 'errore', msg: e.message || String(e), at: Date.now() };
     await store.save();
-    if (view.name === 'home' || view.name === 'settings') render();
-    return null;
-  } finally { syncing = false; }
+  } finally { syncing = false; }        // prima si chiude la sincronizzazione, poi si aggiorna lo schermo
+  if (r && !hadUser && S().user && view.name === 'onboarding') go('home');
+  else if (view.name !== 'run' && ((r && r.changedLocal) || ['home', 'settings'].includes(view.name))) render();
+  return r;
 }
 function syncSoon(ms = 45000) { if (!syncOn()) return; clearTimeout(syncTimer); syncTimer = setTimeout(runSync, ms); }
 function syncStatusText() {
