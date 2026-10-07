@@ -2,7 +2,8 @@
   "keywords": ["ata", "graduatori", "terza fascia", "24 mesi", "ciad", "alfabetizzazione digitale", "assistente amministrativo", "personale amministrativo", "supplenze"],
   "sources": [
     { "id": "mim-graduatorie-ata", "name": "Ministero – pagina Graduatorie ATA", "url": "https://www.istruzione.it/graduatorie-ata/", "type": "html" },
-    { "id": "mim-home", "name": "Ministero – notizie in home page", "url": "https://www.mim.gov.it/", "type": "html" }
-  ],
-  "_note": "Aggiungi qui la pagina del tuo Ufficio scolastico regionale o provinciale (type html o rss). Le parole chiave filtrano i link interessanti."
+    { "id": "mim-home", "name": "Ministero – notizie in home page", "url": "https://www.mim.gov.it/", "type": "html" },
+    { "id": "usr-veneto", "name": "Ufficio Scolastico Regionale per il Veneto", "url": "https://istruzioneveneto.gov.it/", "type": "html" },
+    { "id": "uat-padova", "name": "Ufficio Ambito Territoriale di Padova", "url": "https://padova.istruzioneveneto.gov.it/", "type": "html" }
+  ]
 }
