@@ -15,9 +15,11 @@ if (MODE === 'news') {
   payload = { kind: 'news', title: `ATA Coach: ${news.length} novità dalle fonti ufficiali`, body: news.slice(0, 2).map(n => n.title).join(' · '), url: SITE_URL + '#news' };
 } else payload = { kind: 'reminder', title: 'ATA Coach', body: 'È il momento di studiare. Premi Fai tu.', url: SITE_URL };
 
+const fingerprint = s => { try { const u = new URL(s.endpoint); return `${u.hostname} …${s.endpoint.slice(-8)}`; } catch { return 'codice non valido'; } };
 let failed = 0;
 for (const s of subs) {
-  try { await webpush.sendNotification(s, JSON.stringify(payload), { TTL: 6 * 3600 }); }
+  console.log('Invio a:', fingerprint(s));
+  try { await webpush.sendNotification(s, JSON.stringify(payload), { TTL: 6 * 3600, urgency: 'high' }); }
   catch (e) { failed++; console.log('Invio fallito:', e.statusCode || e.message, e.statusCode === 410 ? '(iscrizione scaduta: rifai "Configura le notifiche push" nell\'app)' : ''); }
 }
 console.log(`Inviate ${subs.length - failed}/${subs.length} notifiche (${MODE}).`);
