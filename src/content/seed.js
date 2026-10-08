@@ -1,3 +1,4 @@
+import { EIP_SUBJECT, EIP_TOPICS, EIP_LESSONS, EIP_QUESTIONS } from './eipass.js';
 // CONTENT PACK v1 — Assistente Amministrativo ATA.
 // Regola: nessun contenuto normativo senza fonte. I contenuti che cambiano nel tempo hanno status 'da_verificare'.
 // reviewedAt = data di redazione del contenuto. Prima dell'uso reale, un umano dovrebbe ricontrollare le norme su Normattiva.
@@ -35,9 +36,9 @@ export const SOURCES = [
 ];
 
 export const GOALS = [
-  { id: 'lavoro', label: 'Essere pronta a lavorare in segreteria', weights: { ord: 1, proc: 1.2, priv: 1.1, doc: 1.3, cont: 0.8, pers: 1, sic: 0.6, info: 1, prat: 1.3 } },
-  { id: 'ciad', label: 'Prendere la certificazione informatica (CIAD)', weights: { ord: 0.3, proc: 0.3, priv: 0.5, doc: 0.6, cont: 0.2, pers: 0.3, sic: 0.2, info: 2, prat: 0.4 } },
-  { id: 'concorso', label: 'Prepararmi a un concorso con prove', weights: { ord: 1.2, proc: 1.3, priv: 1, doc: 1, cont: 1.1, pers: 1, sic: 0.8, info: 0.8, prat: 0.8 } }
+  { id: 'lavoro', label: 'Essere pronta a lavorare in segreteria', weights: { ord: 1, proc: 1.2, priv: 1.1, doc: 1.3, cont: 0.8, pers: 1, sic: 0.6, info: 1, prat: 1.3, eip: 1 } },
+  { id: 'ciad', label: 'Prendere la certificazione informatica (CIAD)', weights: { ord: 0.3, proc: 0.3, priv: 0.5, doc: 0.6, cont: 0.2, pers: 0.3, sic: 0.2, info: 1.2, prat: 0.4, eip: 2.5 } },
+  { id: 'concorso', label: 'Prepararmi a un concorso con prove', weights: { ord: 1.2, proc: 1.3, priv: 1, doc: 1, cont: 1.1, pers: 1, sic: 0.8, info: 0.8, prat: 0.8, eip: 0.8 } }
 ];
 
 export const SUBJECTS = [
@@ -404,8 +405,8 @@ export const PROCEDURE_TEMPLATES = [
       { id: 'r_polis', text: 'Registrazione a Istanze Online, il sito del Ministero dove si fa la domanda', source: null, status: 'pratico' }
     ],
     deadlines: [{ id: 'd_open', label: 'Scadenza delle domande', date: null, status: 'attesa', note: 'Il Ministero non l\'ha ancora fissata. Quando esce il bando ti avviso: tu scrivi qui la data e io ti ricordo i giorni che mancano.' }] },
-  { id: 'p_ciad', name: 'Certificazione CIAD – EIPASS Standard', profile: 'Tutti i profili tranne collaboratore scolastico', type: 'certificazione', subjects: ['info'], studyPlan: true,
-    verified: true, rev: 2,
+  { id: 'p_ciad', name: 'Certificazione CIAD – EIPASS Standard', profile: 'Tutti i profili tranne collaboratore scolastico', type: 'certificazione', subjects: ['eip'], studyPlan: true,
+    verified: true, rev: 3,
     summary: 'EIPASS Standard di Certipass è accreditata Accredia sul DigComp 2.2 e vale come CIAD per il personale ATA. Costa 260 € e dura 4 anni. L\'esame ha 7 parti: ognuna si supera già con il livello Base, cioè con metà delle risposte giuste nelle domande di base.',
     requirements: [
       { id: 'r_ente', text: 'Iscriversi a EIPASS Standard tramite un Ei-Center (centro d\'esame autorizzato)', source: 'eipass_std', status: 'pratico' },
@@ -416,6 +417,8 @@ export const PROCEDURE_TEMPLATES = [
     summary: 'Le competenze per lavorare bene quando arriva la prima convocazione.', requirements: [], deadlines: [] }
 ];
 
+// Materia EIPASS Standard (CIAD): contenuti in eipass.js, costruiti sul programma ufficiale Certipass.
+SUBJECTS.push(EIP_SUBJECT); TOPICS.push(...EIP_TOPICS); LESSONS.push(...EIP_LESSONS); QUESTIONS.push(...EIP_QUESTIONS);
 export const ALL_QUESTIONS = [...QUESTIONS, ...OPEN_QUESTIONS];
 export const topicById = id => TOPICS.find(t => t.id === id);
 export const subjectById = id => SUBJECTS.find(s => s.id === id);

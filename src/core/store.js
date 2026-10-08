@@ -24,6 +24,7 @@ export function emptyState() {
     reports: [],                // segnalazioni di errori nei contenuti
     feedSeen: null,             // ultima novità dalle fonti già vista
     alertsDone: {},             // id avviso bando -> data in cui Giorgia l'ha letto
+    pcLater: {},                // id esercizio «Si fa al PC» -> data in cui l'ha rimandato al computer
     nextPlan: null,             // { day, line } usato dal service worker per il promemoria push
     lessonLog: [],              // { id, lessonId, ok, at } eventi lezione (per ricostruire i progressi)
     tombstones: {},             // id eliminati -> data (per propagare le cancellazioni tra dispositivi)
@@ -48,24 +49,26 @@ export const MIGRATIONS = {
     for (const a of s.attempts || []) if (a.session && diag.has(a.session)) a.diag = true;
     return s;
   },
-  // v4: procedure ufficiali aggiornate (bando 2027 e CIAD EIPASS Standard); restano le spunte e le date scritte da Giorgia
-  4: s => {
-    s.alertsDone = s.alertsDone || {};
-    s.procedures = (s.procedures || []).map(p => {
-      const t = PROCEDURE_TEMPLATES.find(x => x.id === p.id); if (!t || (p.rev || 0) >= (t.rev || 0)) return p;
-      const fresh = JSON.parse(JSON.stringify(t));
-      fresh.deadlines = fresh.deadlines.map(d => { const old = (p.deadlines || []).find(x => x.id === d.id); return old && old.byUser && old.date ? { ...d, date: old.date, byUser: true } : d; });
-      return { ...fresh, checked: p.checked || {}, active: p.active !== false, updatedAt: Date.now() };
-    });
-    return s;
-  }
+  // v4: procedure ufficiali aggiornate (bando 2027 e CIAD EIPASS Standard)
+  4: s => { s.alertsDone = s.alertsDone || {}; return s; }
 };
+
+// Le procedure ufficiali si aggiornano quando cambia la loro revisione; restano spunte e date scritte da Giorgia.
+export function refreshProcedures(procs) {
+  return (procs || []).map(p => {
+    const t = PROCEDURE_TEMPLATES.find(x => x.id === p.id); if (!t || (p.rev || 0) >= (t.rev || 0)) return p;
+    const fresh = JSON.parse(JSON.stringify(t));
+    fresh.deadlines = fresh.deadlines.map(d => { const old = (p.deadlines || []).find(x => x.id === d.id); return old && old.byUser && old.date ? { ...d, date: old.date, byUser: true } : d; });
+    return { ...fresh, checked: p.checked || {}, active: p.active !== false, updatedAt: Date.now() };
+  });
+}
 
 export function migrate(state) {
   const base = emptyState();
   let s = { ...base, ...state, settings: { ...base.settings, ...(state.settings || {}) }, sync: { ...base.sync, ...(state.sync || {}) } };
   let v = s.schemaVersion || 1;
   while (v < SCHEMA_VERSION) { v++; if (MIGRATIONS[v]) s = MIGRATIONS[v](s); s.schemaVersion = v; }
+  s.procedures = refreshProcedures(s.procedures);
   return s;
 }
 

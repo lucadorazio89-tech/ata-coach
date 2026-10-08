@@ -21,7 +21,9 @@ export function daysToExam(state, now = Date.now()) {
 
 export function goalWeights(state) {
   const g = GOALS.find(x => x.id === (state.user?.goal || 'lavoro')) || GOALS[0];
-  return g.weights;
+  // La CIAD è requisito d'accesso: se manca, la materia EIPASS pesa comunque molto; se c'è già, quasi niente.
+  const has = state.user?.hasCIAD;
+  return { ...g.weights, eip: has === 'si' ? 0.15 : Math.max(g.weights.eip ?? 1, 1.6) };
 }
 
 // Priorità = importanza × debolezza × errori × memoria × urgenza × prerequisiti × varietà

@@ -79,7 +79,7 @@ export function procedureReport(state, proc, now = Date.now()) {
   const reqs = proc.requirements.map(r => ({ ...r, done: !!(proc.checked || {})[r.id], sourceTitle: r.source ? sourceById(r.source)?.title : null }));
   const missing = reqs.filter(r => !r.done).map(r => r.text);
   const weak = TOPICS.filter(t => topicIds.includes(t.id) && mastery(state.topicStats[t.id], now) < 0.5).map(t => t.name);
-  const sims = state.sessions.filter(s => s.mode === 'simulation' && s.procedure === proc.id);
+  const sims = state.sessions.filter(s => (s.mode === 'simulation' || s.mode === 'eipsim') && s.procedure === proc.id);
   const best = sims.length ? Math.max(...sims.map(s => s.report?.score || 0)) : null;
   let status;
   if (proc.type === 'titoli') status = missing.length === 0 ? 'pronto' : missing.length === 1 ? 'quasi pronto' : 'non pronto';

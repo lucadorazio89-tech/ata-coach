@@ -1,7 +1,7 @@
 // Service worker: app offline + notifiche push personalizzate con i dati locali.
-const CACHE = 'ata-coach-v5';
+const CACHE = 'ata-coach-v6';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './ui/styles.css', './ui/app.js',
-  './core/util.js', './core/store.js', './content/seed.js', './engine/srs.js', './engine/learning.js', './engine/quiz.js',
+  './core/util.js', './core/store.js', './content/eipass.js', './content/seed.js', './engine/srs.js', './engine/learning.js', './engine/quiz.js',
   './engine/scheduler.js', './engine/reporting.js', './engine/bando.js', './engine/packs.js', './core/sync.js', './ai/ai.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

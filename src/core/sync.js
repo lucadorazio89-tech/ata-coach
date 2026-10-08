@@ -5,7 +5,7 @@ import { rebuildDerived, recordHistory } from '../engine/learning.js';
 
 export const SYNC_FILE = 'ata-coach-sync.json';
 // Dati condivisi. Restano sul singolo dispositivo: impostazioni e chiavi, cache AI, sessione in corso, statistiche (ricalcolate).
-export const SYNC_KEYS = ['user', 'procedures', 'attempts', 'errors', 'sessions', 'lessonsRead', 'lessonLog', 'history', 'plans', 'customQuestions', 'documents', 'reports', 'sourceChecks', 'feedSeen', 'alertsDone', 'lastBackupAt', 'tombstones', 'createdAt'];
+export const SYNC_KEYS = ['user', 'procedures', 'attempts', 'errors', 'sessions', 'lessonsRead', 'lessonLog', 'history', 'plans', 'customQuestions', 'documents', 'reports', 'sourceChecks', 'feedSeen', 'alertsDone', 'pcLater', 'lastBackupAt', 'tombstones', 'createdAt'];
 
 export class SyncError extends Error { constructor(code, msg) { super(msg || code); this.code = code; } }
 
@@ -38,7 +38,7 @@ export function mergePayloads(a, b) {
     documents: byId(a.documents, b.documents).filter(alive),
     reports: byId(a.reports, b.reports).filter(alive),
     sourceChecks: maxMap(a.sourceChecks, b.sourceChecks),
-    feedSeen: maxS(a.feedSeen, b.feedSeen), alertsDone: maxMap(a.alertsDone, b.alertsDone), lastBackupAt: maxN(a.lastBackupAt, b.lastBackupAt),
+    feedSeen: maxS(a.feedSeen, b.feedSeen), alertsDone: maxMap(a.alertsDone, b.alertsDone), pcLater: maxMap(a.pcLater, b.pcLater), lastBackupAt: maxN(a.lastBackupAt, b.lastBackupAt),
     tombstones, createdAt: (a.createdAt && b.createdAt) ? Math.min(a.createdAt, b.createdAt) : (a.createdAt || b.createdAt || null)
   };
 }

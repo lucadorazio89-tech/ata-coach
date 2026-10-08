@@ -169,3 +169,11 @@ details summary { cursor: pointer; font-weight: 700; padding: .3rem 0; }
 @media (prefers-reduced-motion: reduce) { .notice-item.big { animation: none; } }
 ol.steps { padding-left: 1.3rem; } ol.steps > li { margin: 0 0 1.1rem; line-height: 1.5; }
 ol.steps ul.news { padding-left: 0; list-style: none; } ol.steps .btn { white-space: normal; text-align: left; }
+
+/* esercizi «Si fa al PC» */
+.pc-box { border: 2px dashed var(--accent, #2C3A92); border-radius: 12px; padding: .8rem 1rem; margin: .6rem 0 1rem; background: color-mix(in srgb, var(--accent, #2C3A92) 6%, transparent); }
+.pc-tag { font-weight: 700; margin: 0 0 .4rem; }
+.pc-box ol { margin: 0; padding-left: 1.2rem; } .pc-box li { margin: .25rem 0; line-height: 1.45; }
+/* risultato simulazione EIPASS */
+.eip-result { margin: 1rem 0; } .eip-part { border-left: 4px solid #2f8f5b; padding: .3rem .8rem; margin: .6rem 0; }
+.eip-part.ko { border-left-color: #c0392b; } .eip-part p { margin: .2rem 0; }

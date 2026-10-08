@@ -3,7 +3,8 @@ import { DAY, dayKey, fmtDate, fmtShort, fmtMinutes, escapeHtml, uid, WEEKDAYS, 
 import { Store, pickAdapter, emptyState } from '../core/store.js';
 import { SUBJECTS, TOPICS, LESSONS, GOALS, SOURCES, PROCEDURE_TEMPLATES, CONTENT_VERSION, OPEN_QUESTIONS, topicById, subjectById, lessonForTopic, sourceById } from '../content/seed.js';
 import { ERROR_TYPES, allQuestions, questionById, recordAttempt, recordOpenAnswer, markLessonRead, getStat, mastery, topicSnapshot, overallMastery, coverage, readinessLabel, recordHistory } from '../engine/learning.js';
-import { pickQuestions, diagnosticQuestions, simulationQuestions, gradeOpenOffline } from '../engine/quiz.js';
+import { pickQuestions, diagnosticQuestions, simulationQuestions, gradeOpenOffline, eipSimulation, eipSimResult, EIP_PART } from '../engine/quiz.js';
+import { EIP_MODULES, EIP_LEVELS } from '../content/eipass.js';
 import { buildSession, tomorrowLine, recoveryInfo, projectCalendar, suggestedMinutesToday, studiedMinutesOn, planStats, daysToExam } from '../engine/scheduler.js';
 import { sessionReport, periodReport, procedureReport, shareText } from '../engine/reporting.js';
 import { analyzeBandoOffline } from '../engine/bando.js';
@@ -194,12 +195,26 @@ function stepsFromPlan(plan) {
   }
   return steps;
 }
+// Computer o telefono? Gli esercizi «Si fa al PC» rimandati compaiono solo quando l'app è aperta dal computer.
+const isDesktop = () => { try { return matchMedia('(pointer: fine)').matches && innerWidth >= 900; } catch { return false; } };
+const lastAttemptAt = (st, qid) => st.attempts.reduce((m, a) => (a.qid === qid && a.at > m ? a.at : m), 0);
+function pcAdjust(steps, mode) {
+  const st = S(), desk = isDesktop(), later = st.pcLater || {};
+  const pending = id => later[id] && later[id] > lastAttemptAt(st, id);
+  let out = steps.filter(x => { if (x.t !== 'mc') return true; const q = questionById(st, x.qid); return !(q?.pc && !desk && pending(q.id)); });
+  if (desk && mode === 'auto') {
+    const have = new Set(out.map(x => x.qid));
+    const due = Object.keys(later).filter(id => pending(id) && !have.has(id) && questionById(st, id)).slice(0, 2);
+    out = [...due.map(qid => ({ t: 'mc', qid, block: 'quiz' })), ...out];
+  }
+  return out;
+}
 function startRun(plan, opts = {}) {
-  const steps = opts.steps || stepsFromPlan(plan);
+  const steps = pcAdjust(opts.steps || stepsFromPlan(plan), opts.mode || plan.mode || 'auto');
   if (!steps.length) { toast(opts.emptyMsg || 'Niente da fare qui adesso.'); return; }
   // le opzioni si mescolano ogni volta: la posizione della risposta giusta non deve aiutare a indovinare
   for (const st of steps) if (st.t === 'mc' && !st.order) { const q = questionById(S(), st.qid); if (q) st.order = shuffle(q.options.map((_, i) => i)); }
-  run = { id: plan.id || uid('s'), plan: { minutes: plan.minutes, why: plan.why || [], focusTopic: plan.focusTopic || null }, steps, i: 0, mode: opts.mode || plan.mode || 'auto', exam: !!opts.exam, diagnostic: !!opts.diagnostic, procedure: opts.procedure || null, startedAt: Date.now(), stepStart: Date.now(), before: masteryMap(), lessons: [], answered: null, unsure: false, timeLimit: opts.exam ? steps.length * 60000 : null };
+  run = { id: plan.id || uid('s'), plan: { minutes: plan.minutes, why: plan.why || [], focusTopic: plan.focusTopic || null }, steps, i: 0, mode: opts.mode || plan.mode || 'auto', exam: !!opts.exam, diagnostic: !!opts.diagnostic, procedure: opts.procedure || null, startedAt: Date.now(), stepStart: Date.now(), before: masteryMap(), lessons: [], answered: null, unsure: false, timeLimit: opts.exam && !opts.noTimer ? steps.length * 60000 : null };
   store.mutate(s => { s.current = run; if (run.mode === 'auto') s.plans[dayKey()] = { createdAt: Date.now(), minutes: plan.minutes, focusTopic: plan.focusTopic, why: plan.why }; });
   go('run');
 }
@@ -212,7 +227,7 @@ function nextStep() {
 function finishRun() {
   clearInterval(timerId);
   const session = { id: run.id, mode: run.mode, procedure: run.procedure, startedAt: run.startedAt, endedAt: Date.now(), lessons: run.lessons, plan: run.plan, diagnostic: run.diagnostic };
-  store.mutate(s => { session.report = sessionReport(s, session, run.before); s.sessions.push(session); recordHistory(s); s.current = null; s.nextPlan = { day: dayKey(Date.now() + DAY), line: session.report.tomorrow }; });
+  store.mutate(s => { session.report = sessionReport(s, session, run.before); if (run.mode === 'eipsim') session.report.eip = eipSimResult(s, session.id); s.sessions.push(session); recordHistory(s); s.current = null; s.nextPlan = { day: dayKey(Date.now() + DAY), line: session.report.tomorrow }; });
   run = null; go('report', { id: session.id }); syncSoon(2000);
 }
 
@@ -238,7 +253,7 @@ VIEWS.onboarding = () => {
     <div class="choices row">${[15, 20, 30, 45, 60].map(m => `<button class="choice ${d.minutes === m ? 'on' : ''}" data-act="obSet" data-k="minutes" data-v="${m}" aria-pressed="${d.minutes === m}">${m} min</button>`).join('')}</div>
     <label class="check"><input type="checkbox" id="ob-weekend" ${d.weekend ? 'checked' : ''}><span>Studio anche nel weekend</span></label>
     <button class="btn primary" data-act="obNext">Avanti</button></main>`;
-  return `<main class="wrap ob">${head}<h1>Ultimo passo: un test per capire da dove partire.</h1><p class="lead">Una domanda per argomento, circa ${TOPICS.length}: sette minuti. Non è un voto. Se non sai una risposta, premi «Non lo so»: mi aiuta più di una risposta a caso.</p>
+  return `<main class="wrap ob">${head}<h1>Ultimo passo: un test per capire da dove partire.</h1><p class="lead">${(() => { const n = TOPICS.filter(t => t.subject !== 'eip').length + (d.hasCIAD === 'si' ? 0 : EIP_MODULES.length); return `Una domanda per argomento, circa ${n}: ${Math.round(n / 3)} minuti.`; })()} Non è un voto. Se non sai una risposta, premi «Non lo so»: mi aiuta più di una risposta a caso.</p>
     <button class="btn primary" data-act="obFinish">Inizia il test</button></main>`;
 };
 
@@ -266,6 +281,7 @@ VIEWS.home = () => {
       <button data-act="go" data-to="tests">Fammi un test</button>
       <button data-act="errors">Ripassa i miei errori${openErrors ? ` <b>${openErrors}</b>` : ''}</button>
       <button data-act="go" data-to="progress">Come sono messa?</button>
+      ${st.user?.hasCIAD !== 'si' ? '<button data-act="go" data-to="eipsim">Simulazione CIAD</button>' : ''}
       <button data-act="go" data-to="bandi">Bandi e scadenze</button>
       <button data-act="go" data-to="lessons">Lezioni</button>
       <button data-act="go" data-to="calendar">Calendario</button>
@@ -278,7 +294,8 @@ VIEWS.home = () => {
 function runHeader() {
   const n = run.steps.length, i = Math.min(run.i + 1, n);
   return `<header class="run-head"><button class="link" data-act="exitRun">Esci (salvo dove sei)</button>
-    <span class="run-count">${run.exam ? `<span id="timer" aria-live="polite"></span> · ` : ''}${i} di ${n}</span></header>
+    <span class="run-count">${run.timeLimit ? `<span id="timer" aria-live="polite"></span> · ` : ''}${i} di ${n}</span></header>
+    ${run.steps[run.i]?.part ? `<p class="crumb">Parte ${run.steps[run.i].part} · ${esc(EIP_MODULES.find(m => m.n === run.steps[run.i].part).name)} · livello ${EIP_LEVELS[run.steps[run.i].lvl]}</p>` : ''}
     <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="${n}" aria-valuenow="${run.i}"><span style="width:${(run.i / n) * 100}%"></span></div>`;
 }
 
@@ -313,11 +330,14 @@ function mcHtml(q, step) {
       <button class="btn primary" data-act="next" data-autofocus>Avanti</button>
       <button class="link small" data-act="reportQ" data-q="${q.id}">Segnala un errore in questa domanda</button></section>`;
   }
+  const pcBox = q.pc ? `<section class="pc-box"><p class="pc-tag">🖥 Si fa al PC</p>
+      <ol>${q.pc.filter(x => !/^Domanda:/.test(x)).map(x => `<li>${esc(x)}</li>`).join('')}</ol>
+      ${!a && !isDesktop() ? '<p class="small">Sei sul telefono? Premi «Lo faccio al PC»: te lo ripropongo quando apri l\'app dal computer. Non conta come errore.</p>' : ''}</section>` : '';
   return `<p class="crumb">${esc(t.name)}${step.block === 'review' ? ' · ripasso' : ''}</p>
-    <h2 class="qtext">${esc(q.text)}</h2>
+    ${q.pc ? `<h2 class="qtext">${esc(q.text)}</h2>${pcBox}<p class="qtext pc-q"><b>${esc((t => t.charAt(0).toUpperCase() + t.slice(1))(q.pc[q.pc.length - 1].replace(/^Domanda:\s*/, '')))}</b></p>` : `<h2 class="qtext">${esc(q.text)}</h2>`}
     ${q.origin !== 'content-pack' ? '<p class="muted small">Domanda aggiunta (non fa parte del pacchetto dell\'app).</p>' : ''}
     <div class="opts">${opts}</div>
-    ${a ? '' : `<div class="pre"><button class="chip ${run.unsure ? 'on' : ''}" data-act="unsure" aria-pressed="${run.unsure}">Non sono sicura</button><button class="link" data-act="dontKnow">Non lo so</button></div>`}
+    ${a ? '' : `<div class="pre">${q.pc && !run.exam ? '<button class="btn" data-act="pcLater">Lo faccio al PC</button>' : ''}<button class="chip ${run.unsure ? 'on' : ''}" data-act="unsure" aria-pressed="${run.unsure}">Non sono sicura</button><button class="link" data-act="dontKnow">Non lo so</button></div>`}
     ${fb}`;
 }
 
@@ -371,14 +391,22 @@ VIEWS.report = ({ id }) => {
     ['Criticità', r.critical.length ? top3(r.critical, '; ') : 'nessuna'],
     ['Da ripassare', r.toReview.length ? top3(r.toReview, ', ') : 'niente di urgente']
   ];
-  return `<main class="wrap report"><p class="brand">${s.diagnostic ? 'Test iniziale' : s.mode === 'simulation' ? 'Simulazione' : 'Sessione'} del ${fmtDate(s.startedAt)}</p>
+  return `<main class="wrap report"><p class="brand">${s.diagnostic ? 'Test iniziale' : s.mode === 'eipsim' ? 'Simulazione CIAD – EIPASS Standard' : s.mode === 'simulation' ? 'Simulazione' : 'Sessione'} ${(d => /^(8|11)\b/.test(d) ? 'dell\'' + d : 'del ' + d)(fmtDate(s.startedAt))}</p>
     <h1>${r.score == null ? 'Fatto.' : r.score >= 80 ? 'Ottima sessione.' : r.score >= 50 ? 'Buon lavoro.' : 'Sessione utile: ora so dove lavorare.'}</h1>
+    ${s.mode === 'eipsim' && r.eip ? eipResultHtml(r.eip) : ''}
     <dl class="verbale">${rows.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
-    ${s.mode === 'simulation' ? simulationReview(s) : ''}
+    ${s.mode === 'simulation' || s.mode === 'eipsim' ? simulationReview(s) : ''}
     <aside class="stamp big"><span class="stamp-k">Prossimo appuntamento</span><span class="stamp-v">${esc(r.tomorrow)}</span></aside>
     <button class="btn primary" data-act="go" data-to="home">Torna alla home</button></main>`;
 };
 
+function eipResultHtml(e) {
+  const cnt = p => [1, 2, 3, 4].map(l => `${EIP_LEVELS[l]} ${p.counts[l].ok}/${p.counts[l].n}`).join(' · ');
+  return `<section class="eip-result"><h2>${e.passed === e.total ? (e.total === 7 ? 'Esame superato in tutte le 7 parti.' : 'Parte superata.') : `Parti superate: ${e.passed} di ${e.total}`}</h2>
+    ${e.parts.map(p => `<div class="eip-part ${p.passed ? 'ok' : 'ko'}"><p><b>Parte ${p.n} · ${esc(p.name)}</b><br>${p.passed ? `✅ Superata · livello <b>${esc(p.levelName)}</b>` : '❌ Non ancora superata: serve almeno metà delle domande Base giuste.'}</p>
+      <p class="muted small">${cnt(p)}${p.weak.length ? ` · da rinforzare: ${esc(p.weak.join(', '))}` : ''}</p></div>`).join('')}
+    <p class="muted small">Regole come all'esame vero: un livello è superato con il 50% di risposte giuste; per salire al livello successivo serve il 75% in quello precedente. Gli argomenti sbagliati entrano da soli nel ripasso del «Fai tu».</p></section>`;
+}
 function simulationReview(s) {
   const atts = S().attempts.filter(a => a.session === s.id && !a.correct);
   if (!atts.length) return '';
@@ -389,10 +417,24 @@ VIEWS.tests = () => `<main class="wrap">${back()}<h1>Fammi un test</h1>
   <div class="menu">
     <button data-act="test" data-kind="quick"><b>Test veloce</b><span>10 domande scelte sul tuo livello</span></button>
     <button data-act="errors"><b>Sui miei errori</b><span>Solo le domande che hai sbagliato</span></button>
+    <button data-act="go" data-to="eipsim"><b>Simulazione CIAD (EIPASS Standard)</b><span>Come l'esame vero: 7 parti, livelli da Base ad Altamente specializzato</span></button>
     <button data-act="test" data-kind="sim"><b>Simulazione</b><span>30 domande in 30 minuti, correzione alla fine</span></button>
     <button data-act="test" data-kind="open"><b>Interrogazione</b><span>Una domanda a cui rispondi con parole tue</span></button>
   </div>
   <h2>Per materia</h2><div class="menu compact">${SUBJECTS.map(s => `<button data-act="test" data-kind="subject" data-id="${s.id}">${esc(s.name)}</button>`).join('')}</div></main>`;
+
+VIEWS.eipsim = () => {
+  const st = S(), sims = st.sessions.filter(x => x.mode === 'eipsim' && x.report?.eip);
+  const best = n => { let b = null; for (const x of sims) for (const p of x.report.eip.parts) if (p.n === n && (b == null || p.level > b)) b = p.level; return b; };
+  const perPart = EIP_PART.slice(1).reduce((a, b) => a + b, 0);
+  return `<main class="wrap">${back('tests', 'Test')}<h1>Simulazione CIAD</h1>
+    <p class="lead">È fatta come l'esame EIPASS Standard: ogni parte ha ${perPart} domande, prima ${EIP_PART[1]} di livello Base, poi ${EIP_PART[2]} Intermedio, ${EIP_PART[3]} Avanzato e ${EIP_PART[4]} Altamente specializzato. La correzione arriva alla fine.</p>
+    <p>Per superare una parte basta il livello Base: <b>almeno metà delle domande Base giuste</b>.</p>
+    <button class="btn primary" data-act="eipSim" data-part="all">Esame completo: 7 parti (${perPart * 7} domande)</button>
+    <p class="muted small">Puoi uscire quando vuoi: riprendi da dove eri. Come all'esame vero, si può fare anche una parte al giorno.</p>
+    <h2>Una parte alla volta</h2>
+    <div class="menu">${EIP_MODULES.map(m => { const b = best(m.n); return `<button data-act="eipSim" data-part="${m.n}"><b>Parte ${m.n} · ${esc(m.name)}</b><span>${b == null ? 'non ancora provata' : b ? `migliore: livello ${EIP_LEVELS[b]}` : 'non ancora superata'}</span></button>`; }).join('')}</div></main>`;
+};
 
 VIEWS.progress = () => {
   const st = S(), w = periodReport(st, 7), m = periodReport(st, 30);
@@ -442,7 +484,7 @@ VIEWS.proc = ({ id }) => {
     ${r.weak.length ? `<p class="muted">Da rinforzare: ${esc(r.weak.join(', '))}.</p>` : ''}
     <p>Simulazioni fatte: ${r.simulations}${r.bestSimulation != null ? ` · migliore ${r.bestSimulation}%` : ''}</p>
     ${p.type === 'titoli' ? '<p class="muted">Questa graduatoria è per soli titoli: il punteggio non dipende da una prova. Lo studio serve per la CIAD e per lavorare bene quando ti chiamano.</p>' : ''}
-    <div class="actions"><button class="btn" data-act="procSim" data-id="${p.id}">Simulazione su queste materie</button>
+    <div class="actions">${p.id === 'p_ciad' ? '<button class="btn primary" data-act="go" data-to="eipsim">Simulazione d\'esame EIPASS Standard</button>' : `<button class="btn" data-act="procSim" data-id="${p.id}">Simulazione su queste materie</button>`}
     ${p.custom ? `<button class="link danger" data-act="delProc" data-id="${p.id}">Rimuovi</button>` : ''}</div></main>`;
 };
 
@@ -678,6 +720,16 @@ A.test = d => {
   if (d.kind === 'subject') { const qs = pickQuestions(st, { mode: 'subject', subjectId: d.id, n: 10 }); return startRun({ id: uid('s'), minutes: qs.length, mode: 'test' }, { steps: qs.map(q => ({ t: 'mc', qid: q.id, block: 'quiz' })), mode: 'test' }); }
   if (d.kind === 'sim') { const qs = simulationQuestions(st, 30); return startRun({ id: uid('s'), minutes: qs.length, mode: 'simulation' }, { steps: qs.map(q => ({ t: 'mc', qid: q.id, block: 'quiz' })), exam: true, mode: 'simulation' }); }
   if (d.kind === 'open') { const done = new Set(st.attempts.map(a => a.qid)); const o = OPEN_QUESTIONS.find(x => !done.has(x.id)) || OPEN_QUESTIONS[Math.floor(Math.random() * OPEN_QUESTIONS.length)]; return startRun({ id: uid('s'), minutes: 5, mode: 'test' }, { steps: [{ t: 'open', qid: o.id }], mode: 'test' }); }
+};
+A.eipSim = d => {
+  const parts = d.part === 'all' ? EIP_MODULES.map(m => m.n) : [+d.part];
+  const steps = eipSimulation(S(), parts);
+  startRun({ id: uid('s'), minutes: steps.length, mode: 'eipsim' }, { steps, exam: true, noTimer: true, mode: 'eipsim', procedure: 'p_ciad' });
+};
+A.pcLater = () => {
+  const qid = run.steps[run.i].qid;
+  store.mutate(s => { s.pcLater = s.pcLater || {}; s.pcLater[qid] = Date.now(); });
+  toast('Va bene: te lo ripropongo quando apri l\'app dal computer.'); nextStep();
 };
 A.procSim = d => {
   const p = S().procedures.find(x => x.id === d.id); const qs = simulationQuestions(S(), 20, Math.random, p.subjects);

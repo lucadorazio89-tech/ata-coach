@@ -149,9 +149,14 @@ test('calendario: ruota gli argomenti e rispetta i giorni liberi', () => {
   assert.ok(new Set(cal.filter(d => d.topic).map(d => d.topic)).size >= 4);
 });
 
-test('diagnostico copre tutti gli argomenti', () => {
+test('diagnostico copre tutti gli argomenti, e la CIAD con una domanda per modulo', () => {
   const d = diagnosticQuestions(freshState(), seededRandom(5));
-  assert.equal(new Set(d.map(q => q.topic)).size, TOPICS.length);
+  const base = TOPICS.filter(t => t.subject !== 'eip');
+  for (const t of base) assert.ok(d.some(q => q.topic === t.id), t.id);
+  assert.equal(d.filter(q => q.eipLevel).length, 7, 'una domanda per ciascuno dei 7 moduli EIPASS');
+  assert.ok(d.every(q => !q.pc), 'mai esercizi al PC nel test iniziale');
+  const s = freshState(); s.user = { hasCIAD: 'si' };
+  assert.equal(diagnosticQuestions(s, seededRandom(5)).filter(q => q.eipLevel).length, 0, 'chi ha già la CIAD non fa domande EIPASS');
 });
 
 test('risposte aperte: correzione offline a parole chiave', () => {
