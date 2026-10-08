@@ -1,8 +1,9 @@
 // Database locale. Lo stato utente (progressi) è separato dai contenuti didattici (content pack in seed.js).
 // Adapter: IndexedDB (browser), localStorage (fallback), memoria (test).
 import { dayKey } from './util.js';
+import { PROCEDURE_TEMPLATES } from '../content/seed.js';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export function emptyState() {
   return {
@@ -22,6 +23,7 @@ export function emptyState() {
     sourceChecks: {},           // sourceId -> data dell'ultima verifica fatta da una persona
     reports: [],                // segnalazioni di errori nei contenuti
     feedSeen: null,             // ultima novità dalle fonti già vista
+    alertsDone: {},             // id avviso bando -> data in cui Giorgia l'ha letto
     nextPlan: null,             // { day, line } usato dal service worker per il promemoria push
     lessonLog: [],              // { id, lessonId, ok, at } eventi lezione (per ricostruire i progressi)
     tombstones: {},             // id eliminati -> data (per propagare le cancellazioni tra dispositivi)
@@ -44,6 +46,17 @@ export const MIGRATIONS = {
     if (!s.lessonLog || !s.lessonLog.length) s.lessonLog = Object.entries(s.lessonsRead || {}).map(([lessonId, at]) => ({ id: 'l_mig_' + lessonId, lessonId, ok: true, at }));
     const diag = new Set((s.sessions || []).filter(x => x.diagnostic).map(x => x.id));
     for (const a of s.attempts || []) if (a.session && diag.has(a.session)) a.diag = true;
+    return s;
+  },
+  // v4: procedure ufficiali aggiornate (bando 2027 e CIAD EIPASS Standard); restano le spunte e le date scritte da Giorgia
+  4: s => {
+    s.alertsDone = s.alertsDone || {};
+    s.procedures = (s.procedures || []).map(p => {
+      const t = PROCEDURE_TEMPLATES.find(x => x.id === p.id); if (!t || (p.rev || 0) >= (t.rev || 0)) return p;
+      const fresh = JSON.parse(JSON.stringify(t));
+      fresh.deadlines = fresh.deadlines.map(d => { const old = (p.deadlines || []).find(x => x.id === d.id); return old && old.byUser && old.date ? { ...d, date: old.date, byUser: true } : d; });
+      return { ...fresh, checked: p.checked || {}, active: p.active !== false, updatedAt: Date.now() };
+    });
     return s;
   }
 };

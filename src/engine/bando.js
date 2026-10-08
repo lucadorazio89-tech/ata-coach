@@ -1,4 +1,4 @@
-// Analisi bandi SENZA AI: estrazione a regole. Tutto ciò che estrae è marcato "da verificare".
+// Analisi bandi SENZA AI: estrazione a regole. I dati estratti vanno confrontati con il testo prima di salvarli.
 import { MONTHS, uid } from '../core/util.js';
 
 const SUBJECT_KEYWORDS = {
@@ -42,7 +42,7 @@ export function analyzeBandoOffline(text) {
     id: uid('bando'), analyzedAt: Date.now(), method: 'regole (senza AI)',
     type, profiles, subjects, dates, requirements, links, officialHint,
     warnings: [
-      'Estrazione automatica: ogni dato è DA VERIFICARE sul testo ufficiale.',
+      'Dati trovati automaticamente: confronta le date con il testo prima di salvarle.',
       ...(dates.filter(d => d.kind === 'possibile scadenza').length === 0 ? ['Nessuna scadenza riconosciuta con certezza.'] : []),
       ...(officialHint ? [] : ['Nel testo non compare un link a una fonte istituzionale (MIM, USR, INPA, Gazzetta Ufficiale).'])
     ]

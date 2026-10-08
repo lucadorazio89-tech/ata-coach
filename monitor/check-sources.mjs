@@ -7,6 +7,21 @@ const clean = s => decode(String(s).replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
 // Parole chiave corte (es. "ata") solo come parola intera, per non scattare su "giornata" o "approvata".
 const matches = (text, kws) => { const t = text.toLowerCase(); return kws.some(k => { k = k.toLowerCase(); return k.length <= 4 ? new RegExp('(^|[^a-zàèéìòù])' + k + '($|[^a-zàèéìòù])').test(t) : t.includes(k); }); };
 
+// Classifica un titolo: 'bando' (graduatorie ATA terza fascia: uscita, domande, scadenze),
+// 'requisiti' (CIAD, contratto che può cambiare i requisiti) o 'notizia' (tutto il resto, senza notifica).
+const ATA = /(^|[^a-zàèéìòù])ata($|[^a-zàèéìòù])|personale ata|assistent[ei] amministrativ|collaborator[ei] scolastic/;
+export function classify(title) {
+  const t = String(title || '').toLowerCase();
+  const ata = ATA.test(t);
+  if (/(ciad|alfabetizzazione digitale)/.test(t)) return 'requisiti';
+  if (/(ccnl|contratto collettivo|ordinamento professionale)/.test(t) && (ata || /(firmat|sottoscritt|ipotesi|definitiv)/.test(t))) return 'requisiti';
+  if (ata && /graduatori|terza fascia|iii fascia|circolo e d.istituto/.test(t)) {
+    if (/(24 mesi|prima fascia|i fascia|permanent|ruolo|immissioni)/.test(t) && !/(terza fascia|iii fascia|istituto)/.test(t)) return 'notizia';
+    if (/(bando|decreto|d\.\s?m\.|dm |domand|istanz|aggiornament|apertura|presentazione|termin|scadenz|avviso|nota |inserimento|triennio|20\d\d)/.test(t)) return 'bando';
+  }
+  return 'notizia';
+}
+
 export function extractLinks(html, baseUrl, keywords) {
   const out = new Map();
   const re = /<a\b[^>]*href\s*=\s*["']([^"'#]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
@@ -35,9 +50,9 @@ export function parseRss(xml, keywords) {
 export function mergeFeed(prev, fresh, statuses, now = new Date().toISOString()) {
   const known = new Map((prev.items || []).map(i => [i.url, i]));
   const added = [];
-  for (const it of fresh) if (!known.has(it.url)) { const n = { ...it, id: Buffer.from(it.url).toString('base64url').slice(-24), firstSeen: now }; known.set(it.url, n); added.push(n); }
+  for (const it of fresh) if (!known.has(it.url)) { const n = { ...it, kind: classify(it.title), id: Buffer.from(it.url).toString('base64url').slice(-24), firstSeen: now }; known.set(it.url, n); added.push(n); }
   const items = [...known.values()].sort((a, b) => b.firstSeen.localeCompare(a.firstSeen)).slice(0, 200);
-  return { feed: { schema: 'ata-coach-feed/1', updatedAt: now, note: 'Elenco automatico di link dalle fonti ufficiali. Apri sempre la pagina originale: il contenuto è DA VERIFICARE.', sources: statuses, items }, added };
+  return { feed: { schema: 'ata-coach-feed/1', updatedAt: now, note: 'Link trovati sui siti ufficiali del Ministero e dell\'Ufficio scolastico. Tocca un titolo per aprire la pagina originale.', sources: statuses, items }, added };
 }
 
 async function fetchText(url) {

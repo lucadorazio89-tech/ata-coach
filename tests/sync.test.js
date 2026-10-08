@@ -133,6 +133,13 @@ test('codice di collegamento e testo con accenti', () => {
 
 test('migrazione v3: registro lezioni e test iniziale marcati', () => {
   const m = migrate({ schemaVersion: 2, lessonsRead: { l_241: NOW }, sessions: [{ id: 'd', diagnostic: true }], attempts: [{ id: 'a', session: 'd', qid: 'q001', topic: 't_auto', correct: false, at: NOW }] });
-  assert.equal(m.lessonLog.length, 1); assert.equal(m.attempts[0].diag, true); assert.equal(m.schemaVersion, 3);
+  assert.equal(m.lessonLog.length, 1); assert.equal(m.attempts[0].diag, true); assert.equal(m.schemaVersion, 4);
   rebuildDerived(m); assert.equal(Object.keys(m.cards).length, 0);
+});
+
+test('GitHub: una richiesta appesa non blocca la sincronizzazione', async () => {
+  const hang = (url, opts) => new Promise((_, rej) => opts.signal.addEventListener('abort', () => rej(new Error('aborted'))));
+  const gh = new GitHubSync({ token: 'x'.repeat(30), repo: 'a/b', fetchFn: hang });
+  const orig = globalThis.setTimeout; globalThis.setTimeout = (f) => orig(f, 5);   // accelera il timeout nel test
+  try { await assert.rejects(() => gh.pull(), e => e.code === 'offline'); } finally { globalThis.setTimeout = orig; }
 });

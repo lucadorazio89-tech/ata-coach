@@ -30,6 +30,7 @@ export const SOURCES = [
   { id: 'cost', title: 'Costituzione italiana', ref: 'Art. 97: accesso agli impieghi pubblici', url: NX('urn:nir:stato:costituzione:1947-12-27'), official: true, status: 'consolidata', reviewedAt: CONTENT_VERSION },
   { id: 'l633', title: 'Legge 22 aprile 1941, n. 633', ref: 'Diritto d\'autore', url: NX('urn:nir:stato:legge:1941-04-22;633'), official: true, status: 'consolidata', reviewedAt: CONTENT_VERSION },
   { id: 'digcomp', title: 'DigComp 2.2 (Commissione europea, JRC, 2022)', ref: 'Quadro europeo delle competenze digitali', url: null, official: true, status: 'consolidata', reviewedAt: CONTENT_VERSION },
+  { id: 'eipass_std', title: 'EIPASS Standard – pagina ufficiale Certipass', ref: 'Certificazione accreditata Accredia, DigComp 2.2, valida come CIAD', url: 'https://it.eipass.com/certificazioni-informatiche/eipass-standard-digcomp/', official: true, status: 'consolidata', reviewedAt: CONTENT_VERSION },
   { id: 'news_ciad', title: 'Orizzonte Scuola – esclusioni per mancata CIAD', ref: 'Fonte giornalistica (secondaria)', url: 'https://www.orizzontescuola.it/esclusi-da-graduatorie-terza-fascia-ata-perche-senza-ciad-lavviso-via-e-mail/', official: false, status: 'da_verificare', reviewedAt: CONTENT_VERSION }
 ];
 
@@ -394,23 +395,23 @@ export const PACK_SCHEMA = 'ata-coach-pack/1';
 // Template di procedure. type: titoli | certificazione | generale | esame.
 export const PROCEDURE_TEMPLATES = [
   { id: 'p_terza2027', name: 'Graduatorie ATA III fascia 2027–2030', profile: 'Assistente amministrativo', type: 'titoli', subjects: ['info', 'pers'],
-    verified: false,
-    summary: 'Graduatorie per soli titoli. Il nuovo bando è atteso dalla stampa specializzata nella primavera 2027, ma non esiste ancora una data ufficiale.',
+    verified: true, rev: 2,
+    summary: 'Graduatorie per soli titoli: niente esame, conta quello che hai in mano. Il Ministero non ha ancora pubblicato il bando 2027. Controllo i siti ufficiali tre volte al giorno e ti mando una notifica appena esce.',
     requirements: [
-      { id: 'r_dipl', text: 'Diploma di scuola secondaria di II grado', source: 'dm89', status: 'da_verificare' },
-      { id: 'r_ciad', text: 'CIAD – Certificazione internazionale di alfabetizzazione digitale (requisito nel triennio 2024–27)', source: 'dm89', status: 'da_verificare' },
+      { id: 'r_dipl', text: 'Diploma di scuola secondaria di II grado', source: 'dm89', status: 'bando2024' },
+      { id: 'r_ciad', text: 'CIAD – certificazione internazionale di alfabetizzazione digitale (per te: EIPASS Standard)', source: 'dm89', status: 'bando2024' },
       { id: 'r_spid', text: 'SPID o CIE funzionanti', source: null, status: 'pratico' },
-      { id: 'r_polis', text: 'Registrazione a Istanze Online (POLIS)', source: null, status: 'da_verificare' }
+      { id: 'r_polis', text: 'Registrazione a Istanze Online, il sito del Ministero dove si fa la domanda', source: null, status: 'pratico' }
     ],
-    deadlines: [{ id: 'd_open', label: 'Apertura domande', date: null, status: 'da_verificare', note: 'Nessuna data ufficiale. Controllare il sito del Ministero.' }] },
-  { id: 'p_ciad', name: 'Certificazione CIAD', profile: 'Tutti i profili tranne collaboratore scolastico', type: 'certificazione', subjects: ['info'], studyPlan: true,
-    verified: false,
-    summary: 'Serve prima della scadenza del bando. Verifica che l\'ente sia accreditato e che la certificazione sia valida per il bando.',
+    deadlines: [{ id: 'd_open', label: 'Scadenza delle domande', date: null, status: 'attesa', note: 'Il Ministero non l\'ha ancora fissata. Quando esce il bando ti avviso: tu scrivi qui la data e io ti ricordo i giorni che mancano.' }] },
+  { id: 'p_ciad', name: 'Certificazione CIAD – EIPASS Standard', profile: 'Tutti i profili tranne collaboratore scolastico', type: 'certificazione', subjects: ['info'], studyPlan: true,
+    verified: true, rev: 2,
+    summary: 'EIPASS Standard di Certipass è accreditata Accredia sul DigComp 2.2 e vale come CIAD per il personale ATA. Costa 260 € e dura 4 anni. L\'esame ha 7 parti: ognuna si supera già con il livello Base, cioè con metà delle risposte giuste nelle domande di base.',
     requirements: [
-      { id: 'r_ente', text: 'Scegliere un ente certificatore accreditato (verifica su Accredia)', source: 'news_ciad', status: 'da_verificare' },
-      { id: 'r_esame', text: 'Superare l\'esame della certificazione', source: null, status: 'pratico' }
+      { id: 'r_ente', text: 'Iscriversi a EIPASS Standard tramite un Ei-Center (centro d\'esame autorizzato)', source: 'eipass_std', status: 'pratico' },
+      { id: 'r_esame', text: 'Superare le 7 parti dell\'esame (online o in presenza, anche in giorni diversi)', source: 'eipass_std', status: 'pratico' }
     ],
-    deadlines: [{ id: 'd_ciad', label: 'CIAD conseguita entro la scadenza del bando', date: null, status: 'da_verificare', note: 'Nel 2024 fu concessa una finestra speciale: non darla per scontata nel 2027.' }] },
+    deadlines: [{ id: 'd_ciad', label: 'CIAD in mano', date: null, status: 'consiglio', note: 'Prendila prima che esca il bando: così sei pronta qualunque sia la scadenza.' }] },
   { id: 'p_generale', name: 'Preparazione generale – lavorare in segreteria', profile: 'Assistente amministrativo', type: 'generale', subjects: SUBJECTS.map(s => s.id), verified: true,
     summary: 'Le competenze per lavorare bene quando arriva la prima convocazione.', requirements: [], deadlines: [] }
 ];

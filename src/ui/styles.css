@@ -162,3 +162,10 @@ details summary { cursor: pointer; font-weight: 700; padding: .3rem 0; }
 .link.small { display: block; font-size: .9rem; margin-top: .4rem; }
 
 .sync-line { color: var(--muted); font-size: .88rem; text-align: center; margin-top: 1.4rem; max-width: none; }
+
+/* avviso bando: grande e impossibile da non vedere */
+.notice-item.big { font-size: 1.15rem; font-weight: 700; padding: 1.1rem 1rem; border-width: 2px; animation: ata-pulse 2s ease-in-out 3; }
+@keyframes ata-pulse { 50% { transform: scale(1.02); } }
+@media (prefers-reduced-motion: reduce) { .notice-item.big { animation: none; } }
+ol.steps { padding-left: 1.3rem; } ol.steps > li { margin: 0 0 1.1rem; line-height: 1.5; }
+ol.steps ul.news { padding-left: 0; list-style: none; } ol.steps .btn { white-space: normal; text-align: left; }

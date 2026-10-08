@@ -11,8 +11,11 @@ let subs = JSON.parse(PUSH_SUBSCRIPTION); if (!Array.isArray(subs)) subs = [subs
 let payload;
 if (MODE === 'news') {
   const news = existsSync('monitor/.new.json') ? JSON.parse(readFileSync('monitor/.new.json', 'utf8')) : [];
-  if (!news.length) { console.log('Nessuna novità.'); process.exit(0); }
-  payload = { kind: 'news', title: `ATA Coach: ${news.length} novità dalle fonti ufficiali`, body: news.slice(0, 2).map(n => n.title).join(' · '), url: SITE_URL + '#news' };
+  // Notifica solo bando e requisiti: le notizie minori restano nell'app senza disturbare.
+  const bando = news.filter(n => n.kind === 'bando'), req = news.filter(n => n.kind === 'requisiti');
+  if (bando.length) payload = { kind: 'bando', title: '📣 Novità sul bando ATA terza fascia', body: bando[0].title + (bando.length > 1 ? ` (e altri ${bando.length - 1} avvisi)` : '') + ' – Apri l\'app: ti dico cosa fare.', url: SITE_URL + '#bando' };
+  else if (req.length) payload = { kind: 'requisiti', title: 'Novità ufficiale su CIAD o contratto', body: req[0].title + ' – Apri l\'app per leggerla.', url: SITE_URL + '#bando' };
+  else { console.log(`${news.length} notizie minori: nessuna notifica (sono nell'app).`); process.exit(0); }
 } else payload = { kind: 'reminder', title: 'ATA Coach', body: 'È il momento di studiare. Premi Fai tu.', url: SITE_URL };
 
 const fingerprint = s => { try { const u = new URL(s.endpoint); return `${u.hostname} …${s.endpoint.slice(-8)}`; } catch { return 'codice non valido'; } };

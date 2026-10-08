@@ -14,7 +14,7 @@ test('content v2: almeno 150 domande e un percorso CIAD di 8 argomenti', () => {
 
 test('migrazione v2: il modello Gemini dismesso viene sostituito', () => {
   const m = migrate({ schemaVersion: 1, settings: { model: 'gemini-2.5-flash', apiKey: 'k' } });
-  assert.equal(m.settings.model, 'gemini-flash-latest'); assert.equal(m.settings.apiKey, 'k'); assert.equal(m.schemaVersion, 3);
+  assert.equal(m.settings.model, 'gemini-flash-latest'); assert.equal(m.settings.apiKey, 'k'); assert.equal(m.schemaVersion, 4);
   assert.deepEqual(m.sourceChecks, {}); assert.deepEqual(m.reports, []);
   assert.equal(migrate({ schemaVersion: 1, settings: { model: 'gemini-3.5-flash' } }).settings.model, 'gemini-3.5-flash');
   assert.equal(emptyState().settings.model, MODEL_DEFAULT);

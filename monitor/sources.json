@@ -1,9 +1,42 @@
 {
-  "keywords": ["ata", "graduatori", "terza fascia", "24 mesi", "ciad", "alfabetizzazione digitale", "assistente amministrativo", "personale amministrativo", "supplenze"],
+  "keywords": [
+    "ata",
+    "graduatori",
+    "terza fascia",
+    "24 mesi",
+    "ciad",
+    "alfabetizzazione digitale",
+    "assistente amministrativo",
+    "personale amministrativo",
+    "supplenze",
+    "ccnl",
+    "contratto collettivo"
+  ],
   "sources": [
-    { "id": "mim-graduatorie-ata", "name": "Ministero – pagina Graduatorie ATA", "url": "https://www.istruzione.it/graduatorie-ata/", "type": "html" },
-    { "id": "mim-home", "name": "Ministero – notizie in home page", "url": "https://www.mim.gov.it/", "type": "html" },
-    { "id": "usr-veneto", "name": "Ufficio Scolastico Regionale per il Veneto", "url": "https://istruzioneveneto.gov.it/", "type": "html" },
-    { "id": "uat-padova", "name": "Ufficio Ambito Territoriale di Padova", "url": "https://padova.istruzioneveneto.gov.it/", "type": "html" }
-  ]
+    {
+      "id": "mim-graduatorie-ata",
+      "name": "Ministero – pagina Graduatorie ATA",
+      "url": "https://www.istruzione.it/graduatorie-ata/",
+      "type": "html"
+    },
+    {
+      "id": "mim-home",
+      "name": "Ministero – notizie in home page",
+      "url": "https://www.mim.gov.it/",
+      "type": "html"
+    },
+    {
+      "id": "usr-veneto",
+      "name": "Ufficio scolastico regionale del Veneto",
+      "url": "https://istruzioneveneto.gov.it/",
+      "type": "html"
+    },
+    {
+      "id": "uat-padova",
+      "name": "Ufficio scolastico di Padova e Rovigo",
+      "url": "https://padova.istruzioneveneto.gov.it/",
+      "type": "html"
+    }
+  ],
+  "_note": "Pagine controllate tre volte al giorno. Le parole chiave scelgono i link; il bando e le novità sulla CIAD fanno partire la notifica."
 }

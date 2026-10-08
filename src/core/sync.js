@@ -5,7 +5,7 @@ import { rebuildDerived, recordHistory } from '../engine/learning.js';
 
 export const SYNC_FILE = 'ata-coach-sync.json';
 // Dati condivisi. Restano sul singolo dispositivo: impostazioni e chiavi, cache AI, sessione in corso, statistiche (ricalcolate).
-export const SYNC_KEYS = ['user', 'procedures', 'attempts', 'errors', 'sessions', 'lessonsRead', 'lessonLog', 'history', 'plans', 'customQuestions', 'documents', 'reports', 'sourceChecks', 'feedSeen', 'lastBackupAt', 'tombstones', 'createdAt'];
+export const SYNC_KEYS = ['user', 'procedures', 'attempts', 'errors', 'sessions', 'lessonsRead', 'lessonLog', 'history', 'plans', 'customQuestions', 'documents', 'reports', 'sourceChecks', 'feedSeen', 'alertsDone', 'lastBackupAt', 'tombstones', 'createdAt'];
 
 export class SyncError extends Error { constructor(code, msg) { super(msg || code); this.code = code; } }
 
@@ -38,7 +38,7 @@ export function mergePayloads(a, b) {
     documents: byId(a.documents, b.documents).filter(alive),
     reports: byId(a.reports, b.reports).filter(alive),
     sourceChecks: maxMap(a.sourceChecks, b.sourceChecks),
-    feedSeen: maxS(a.feedSeen, b.feedSeen), lastBackupAt: maxN(a.lastBackupAt, b.lastBackupAt),
+    feedSeen: maxS(a.feedSeen, b.feedSeen), alertsDone: maxMap(a.alertsDone, b.alertsDone), lastBackupAt: maxN(a.lastBackupAt, b.lastBackupAt),
     tombstones, createdAt: (a.createdAt && b.createdAt) ? Math.min(a.createdAt, b.createdAt) : (a.createdAt || b.createdAt || null)
   };
 }
@@ -60,7 +60,13 @@ export class GitHubSync {
   url() { return `https://api.github.com/repos/${this.repo}/contents/${encodeURIComponent(this.path)}`; }
   headers(accept = 'application/vnd.github+json') { return { Authorization: `Bearer ${this.token}`, Accept: accept, 'X-GitHub-Api-Version': '2022-11-28' }; }
   async req(url, opts) {
-    let r; try { r = await this.fetch(url, opts); } catch { throw new SyncError('offline', 'Nessuna connessione.'); }
+    // Timeout: una connessione appesa non deve bloccare la sincronizzazione per sempre.
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), 25000) : null;
+    let r;
+    try { r = await this.fetch(url, ctrl ? { ...opts, signal: ctrl.signal } : opts); }
+    catch { throw new SyncError('offline', 'Connessione assente o troppo lenta: riprovo più tardi.'); }
+    finally { if (timer) clearTimeout(timer); }
     if (r.status === 401) throw new SyncError('auth', 'La chiave di sincronizzazione non è valida o è scaduta.');
     if (r.status === 403) throw new SyncError('auth', 'La chiave non ha il permesso di scrivere nel repository (serve Contents: Read and write).');
     return r;

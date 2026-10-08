@@ -1,5 +1,5 @@
 // Service worker: app offline + notifiche push personalizzate con i dati locali.
-const CACHE = 'ata-coach-v4';
+const CACHE = 'ata-coach-v5';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './ui/styles.css', './ui/app.js',
   './core/util.js', './core/store.js', './content/seed.js', './engine/srs.js', './engine/learning.js', './engine/quiz.js',
   './engine/scheduler.js', './engine/reporting.js', './engine/bando.js', './engine/packs.js', './core/sync.js', './ai/ai.js'];
@@ -49,9 +49,14 @@ self.addEventListener('push', e => {
         const plan = st.nextPlan && st.nextPlan.day === today ? st.nextPlan.line.replace(/^DOMANI/, 'OGGI') : null;
         if (mins > 0) { title = 'Oggi hai già studiato'; body = `${mins} minuti fatti. Brava. Domani si continua.`; }
         else body = plan || 'Hai qualche minuto? Premi Fai tu, decido io cosa studiare.';
+        // Scadenza della domanda scritta da Giorgia: negli ultimi 30 giorni il promemoria la ricorda per prima.
+        const dl = (st.procedures || []).flatMap(p => (p.active === false ? [] : p.deadlines || []).filter(d => d.date && d.byUser).map(d => ({ ...d, proc: p.name })))
+          .map(d => ({ ...d, left: Math.ceil((new Date(d.date + 'T23:59:59').getTime() - Date.now()) / 86400000) })).filter(d => d.left >= 0 && d.left <= 30).sort((a, b) => a.left - b.left)[0];
+        if (dl) { title = dl.left === 0 ? `Oggi scade: ${dl.label}` : `Mancano ${dl.left} giorni: ${dl.label}`; body = `${dl.proc}. ` + (mins > 0 ? 'Oggi hai già studiato: pensa solo alla domanda.' : body); }
       }
     } catch { /* uso il testo predefinito */ }
-    await self.registration.showNotification(title, { body, icon: './icon.svg', tag: data.kind || 'ata', renotify: true, data: { url: data.url || './' } });
+    const important = data.kind === 'bando' || data.kind === 'requisiti';
+    await self.registration.showNotification(title, { body, icon: './icon.svg', tag: data.kind || 'ata', renotify: true, requireInteraction: important, vibrate: important ? [300, 120, 300, 120, 300] : undefined, data: { url: data.url || './' } });
   })());
 });
 

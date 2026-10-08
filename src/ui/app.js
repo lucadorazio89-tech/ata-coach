@@ -25,11 +25,18 @@ const statusPill = st => `<span class="pill pill-${st.replace(/\s/g, '-')}">${es
 function sourceChip(id) {
   const s = id && sourceById(id); if (!s) return '';
   const checked = S().sourceChecks?.[s.id];
-  const ver = s.status === 'da_verificare' ? ' <strong class="verify">DA VERIFICARE</strong>' : checked ? ` <small>(verificata il ${fmtDate(checked)})</small>` : '';
+  const ver = checked ? ` <small>(verificata il ${fmtDate(checked)})</small>` : '';
   const t = esc(s.title) + ver;
   return `<p class="source">Fonte: ${s.url ? `<a href="${esc(s.url)}" target="_blank" rel="noopener">${t}</a>` : t}${s.official ? '' : ' (fonte non ufficiale)'}</p>`;
 }
+function daysLeft(iso) { const d = Math.ceil((new Date(iso + 'T23:59:59').getTime() - Date.now()) / DAY); return d < 0 ? ' · scaduta' : d === 0 ? ' · <b>scade oggi</b>' : ` · <b>mancano ${d} giorni</b>`; }
 function toast(msg) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; t.setAttribute('role', 'status'); document.body.appendChild(t); setTimeout(() => t.remove(), 2800); }
+// Link delle notifiche (#bando, #news): apro la schermata e pulisco l'ancora, così la notifica successiva funziona di nuovo.
+function routeFromHash(fallback) {
+  const to = { '#bando': 'alert', '#news': 'news' }[location.hash] || fallback;
+  if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+  if (to) go(to);
+}
 function go(name, params = {}) { view = { name, params }; ui = {}; render(); window.scrollTo(0, 0); }
 function render() { clearInterval(timerId); const fn = VIEWS[view.name] || VIEWS.home; $app().innerHTML = fn(view.params); afterRender(); }
 function afterRender() {
@@ -83,9 +90,12 @@ async function linkDevice(repo, token) {
 
 // ---------- feed delle fonti ufficiali ----------
 function newFeedItems(st) { if (!feed?.items?.length) return []; return feed.items.filter(i => !st.feedSeen || i.firstSeen > st.feedSeen); }
+// Avvisi importanti (bando, CIAD/contratto) non ancora letti: restano finché Giorgia non preme «Fatto».
+function openAlerts(st) { if (!feed?.items?.length) return []; return feed.items.filter(i => (i.kind === 'bando' || i.kind === 'requisiti') && !(st.alertsDone || {})[i.id]); }
+const feedAgeDays = () => feed?.updatedAt ? (Date.now() - new Date(feed.updatedAt).getTime()) / DAY : null;
 async function loadFeed() {
   if (!ONLINE_APP) return;
-  try { const r = await fetch('./feed.json', { cache: 'no-cache' }); if (r.ok) { feed = await r.json(); if (view.name === 'home') render(); } } catch { /* offline: nessuna novità */ }
+  try { const r = await fetch('./feed.json', { cache: 'no-cache' }); if (r.ok) { feed = await r.json(); if (['home', 'alert', 'bandi', 'news'].includes(view.name)) render(); } } catch { /* offline: nessuna novità */ }
 }
 
 // ---------- avvisi automatici ----------
@@ -94,10 +104,13 @@ function computeNotices(st) {
   if (st.user?.hasCIAD === 'no') out.push({ kind: 'urgent', text: 'Ti manca la CIAD. Nel bando 2024 era un requisito di accesso per l\'assistente amministrativo: senza, la domanda veniva esclusa. Va presa prima della scadenza del prossimo bando.', act: 'openProc', id: 'p_ciad' });
   if (st.user?.hasCIAD === 'nonso') out.push({ kind: 'urgent', text: 'Verifica se hai già una certificazione informatica valida come CIAD (ente accreditato). È il punto più importante per il bando 2027.', act: 'openProc', id: 'p_ciad' });
   const dte = daysToExam(st); if (dte != null && dte <= 30) out.push({ kind: 'urgent', text: `Mancano ${dte} giorni alla prossima scadenza che hai inserito.`, act: 'go', to: 'bandi' });
-  for (const p of st.procedures) if (!p.verified) { out.push({ kind: 'info', text: `${p.name}: date e requisiti non ancora ufficiali (DA VERIFICARE).`, act: 'openProc', id: p.id }); break; }
+  const al = openAlerts(st);
+  if (al.some(i => i.kind === 'bando')) out.unshift({ kind: 'urgent', big: true, text: '📣 Novità ufficiale sul bando ATA terza fascia. Tocca qui: ti dico cosa fare.', act: 'go', to: 'alert' });
+  else if (al.length) out.unshift({ kind: 'urgent', text: 'Novità ufficiale su CIAD o contratto. Tocca qui per leggerla.', act: 'go', to: 'alert' });
+  const age = feedAgeDays(); if (ONLINE_APP && feed && age != null && age > 3) out.push({ kind: 'urgent', text: `Il controllo automatico dei siti del Ministero è fermo da ${Math.floor(age)} giorni, quindi non posso avvisarti del bando. Chiedi a Luca di guardare GitHub → Actions.`, act: 'go', to: 'news' });
   const sx = st.sync || {};
   if (syncOn() && sx.lastError && ['auth', 'repo', 'data', 'config'].includes(sx.lastError.code) && (!sx.lastSyncAt || sx.lastError.at > sx.lastSyncAt)) out.push({ kind: 'urgent', text: 'La sincronizzazione tra dispositivi è ferma: ' + sx.lastError.msg, act: 'go', to: 'settings' });
-  const fresh = newFeedItems(st); if (fresh.length) out.push({ kind: 'urgent', text: `${fresh.length} novità dalle fonti ufficiali (Ministero/USR). Controlla se riguardano il tuo bando.`, act: 'go', to: 'news' });
+  const fresh = newFeedItems(st).filter(i => i.kind !== 'bando' && i.kind !== 'requisiti'); if (fresh.length) out.push({ kind: 'info', text: `${fresh.length} ${fresh.length === 1 ? 'notizia' : 'notizie'} dai siti della scuola (niente di urgente).`, act: 'go', to: 'news' });
   if (st.sessions.length >= 3 && (!st.lastBackupAt || Date.now() - st.lastBackupAt > 14 * DAY)) out.push({ kind: 'info', text: 'Non salvi una copia dei progressi da più di due settimane.', act: 'go', to: 'settings' });
   return out;
 }
@@ -223,7 +236,7 @@ VIEWS.onboarding = () => {
     <button class="btn primary" data-act="obNext">Avanti</button></main>`;
   if (step === 3) return `<main class="wrap ob">${head}<h1>Quanto tempo hai, di solito?</h1><p class="lead">Meglio poco ma tutti i giorni. Potrai cambiarlo quando vuoi.</p>
     <div class="choices row">${[15, 20, 30, 45, 60].map(m => `<button class="choice ${d.minutes === m ? 'on' : ''}" data-act="obSet" data-k="minutes" data-v="${m}" aria-pressed="${d.minutes === m}">${m} min</button>`).join('')}</div>
-    <label class="check"><input type="checkbox" id="ob-weekend" ${d.weekend ? 'checked' : ''}> Studio anche nel weekend</label>
+    <label class="check"><input type="checkbox" id="ob-weekend" ${d.weekend ? 'checked' : ''}><span>Studio anche nel weekend</span></label>
     <button class="btn primary" data-act="obNext">Avanti</button></main>`;
   return `<main class="wrap ob">${head}<h1>Ultimo passo: un test per capire da dove partire.</h1><p class="lead">Una domanda per argomento, circa ${TOPICS.length}: sette minuti. Non è un voto. Se non sai una risposta, premi «Non lo so»: mi aiuta più di una risposta a caso.</p>
     <button class="btn primary" data-act="obFinish">Inizia il test</button></main>`;
@@ -248,7 +261,7 @@ VIEWS.home = () => {
     <details class="today"><summary>Cosa devo fare oggi?</summary>
       <ul>${preview.why.map(w => `<li>${esc(w)}</li>`).join('')}</ul>
       <p class="muted">${ps.lessons ? 'Una lezione breve, ' : ''}${ps.mc} domande${ps.open ? ', una domanda a risposta aperta' : ''}.</p></details>
-    ${notices.length ? `<section class="notices" aria-label="Avvisi">${notices.map(n => `<button class="notice-item ${n.kind}" data-act="${n.act}" data-to="${n.to || ''}" data-id="${n.id || ''}">${esc(n.text)}</button>`).join('')}</section>` : ''}
+    ${notices.length ? `<section class="notices" aria-label="Avvisi">${notices.map(n => `<button class="notice-item ${n.kind}${n.big ? ' big' : ''}" data-act="${n.act}" data-to="${n.to || ''}" data-id="${n.id || ''}">${esc(n.text)}</button>`).join('')}</section>` : ''}
     <nav class="more" aria-label="Altre attività">
       <button data-act="go" data-to="tests">Fammi un test</button>
       <button data-act="errors">Ripassa i miei errori${openErrors ? ` <b>${openErrors}</b>` : ''}</button>
@@ -302,7 +315,7 @@ function mcHtml(q, step) {
   }
   return `<p class="crumb">${esc(t.name)}${step.block === 'review' ? ' · ripasso' : ''}</p>
     <h2 class="qtext">${esc(q.text)}</h2>
-    ${q.origin !== 'content-pack' ? '<p class="verify">Domanda generata o importata: DA VERIFICARE</p>' : ''}
+    ${q.origin !== 'content-pack' ? '<p class="muted small">Domanda aggiunta (non fa parte del pacchetto dell\'app).</p>' : ''}
     <div class="opts">${opts}</div>
     ${a ? '' : `<div class="pre"><button class="chip ${run.unsure ? 'on' : ''}" data-act="unsure" aria-pressed="${run.unsure}">Non sono sicura</button><button class="link" data-act="dontKnow">Non lo so</button></div>`}
     ${fb}`;
@@ -406,8 +419,9 @@ VIEWS.progress = () => {
 VIEWS.bandi = () => {
   const st = S();
   return `<main class="wrap">${back()}<h1>Bandi e scadenze</h1>
-    <p class="lead">Tengo separate la preparazione generale e quella per ogni procedura. Le date non ufficiali restano segnate come DA VERIFICARE finché non le controlli sul sito del Ministero.</p>
-    <div class="menu">${st.procedures.map(p => { const r = procedureReport(st, p); return `<button data-act="openProc" data-id="${p.id}"><b>${esc(p.name)}</b><span>${statusPill(r.status)} ${p.verified ? '' : '<strong class="verify">DA VERIFICARE</strong>'}</span></button>`; }).join('')}</div>
+    <p class="lead">Controllo i siti del Ministero e dell'Ufficio scolastico del Veneto tre volte al giorno. Quando esce il bando ti arriva una notifica.</p>
+    ${openAlerts(st).length ? '<button class="btn primary" data-act="go" data-to="alert">📣 Leggi la novità sul bando</button>' : ''}
+    <div class="menu">${st.procedures.map(p => { const r = procedureReport(st, p); return `<button data-act="openProc" data-id="${p.id}"><b>${esc(p.name)}</b><span>${statusPill(r.status)}</span></button>`; }).join('')}</div>
     <button class="btn primary" data-act="go" data-to="analyze">Analizza un bando</button>
     <button class="btn" data-act="go" data-to="news">Novità dalle fonti ufficiali${newFeedItems(st).length ? ` (${newFeedItems(st).length})` : ''}</button></main>`;
 };
@@ -416,12 +430,13 @@ VIEWS.proc = ({ id }) => {
   const st = S(), p = st.procedures.find(x => x.id === id); if (!p) return VIEWS.bandi();
   const r = procedureReport(st, p);
   return `<main class="wrap">${back('bandi', 'Bandi')}<h1>${esc(p.name)}</h1><p class="muted">${esc(p.profile || '')}</p>
-    ${p.verified ? '' : '<p class="verify-box">Contenuti non ancora ufficiali: DA VERIFICARE su mim.gov.it, sito dell\'USR o Gazzetta Ufficiale.</p>'}
-    <p>${esc(p.summary || '')}</p>
+    ${p.id === 'p_terza2027' && feed?.items?.some(i => i.kind === 'bando')
+      ? `<p>Graduatorie per soli titoli: niente esame, conta quello che hai in mano.</p><p class="notice">📣 Il Ministero ha pubblicato novità sul bando.</p><button class="btn primary" data-act="openBandoNews">Rileggi le novità e i passi da fare</button>`
+      : `<p>${esc(p.summary || '')}</p>`}
     <p>Stato: ${statusPill(r.status)}</p>
-    ${r.requirements.length ? `<h2>Requisiti</h2><p class="muted">Spunta quelli che hai già.</p>${r.requirements.map(q => `<label class="check"><input type="checkbox" data-change="req" data-proc="${p.id}" data-req="${q.id}" ${q.done ? 'checked' : ''}> ${esc(q.text)}${q.status === 'da_verificare' ? ' <strong class="verify">DA VERIFICARE</strong>' : ''}${q.sourceTitle ? `<small class="muted"> · ${esc(q.sourceTitle)}</small>` : ''}</label>`).join('')}` : ''}
-    <h2>Scadenze</h2>${(p.deadlines || []).length ? p.deadlines.map(d => `<div class="deadline"><p><strong>${esc(d.label)}</strong>: ${d.date ? fmtDate(d.date) + (d.byUser ? ' (inserita da te)' : '') : 'data non ancora nota'} ${d.status === 'da_verificare' ? '<strong class="verify">DA VERIFICARE</strong>' : ''}</p>${d.note ? `<p class="muted small">${esc(d.note)}</p>` : ''}
-      <label class="field inline">Data ufficiale trovata<input type="date" value="${d.date || ''}" data-change="deadline" data-proc="${p.id}" data-dl="${d.id}"></label></div>`).join('') : '<p class="muted">Nessuna scadenza.</p>'}
+    ${r.requirements.length ? `<h2>Requisiti</h2><p class="muted">Spunta quelli che hai già.</p>${r.requirements.map(q => `<label class="check"><input type="checkbox" data-change="req" data-proc="${p.id}" data-req="${q.id}" ${q.done ? 'checked' : ''}><span>${esc(q.text)}${q.status === 'bando2024' ? ' <small class="muted">(richiesto nel bando 2024)</small>' : ''}${q.sourceTitle ? `<br><small class="muted">Fonte: ${esc(q.sourceTitle)}</small>` : ''}</span></label>`).join('')}` : ''}
+    <h2>Scadenze</h2>${(p.deadlines || []).length ? p.deadlines.map(d => `<div class="deadline"><p><strong>${esc(d.label)}</strong>: ${d.date ? fmtDate(d.date) + (d.byUser ? ' (scritta da te)' : '') + daysLeft(d.date) : 'non ancora fissata'}</p>${d.note && !d.date ? `<p class="muted small">${esc(d.note)}</p>` : ''}
+      <label class="field inline">Data scritta nel bando<input type="date" value="${d.date || ''}" data-change="deadline" data-proc="${p.id}" data-dl="${d.id}"></label></div>`).join('') : '<p class="muted">Nessuna scadenza.</p>'}
     ${r.missing.length ? `<h2>Cosa manca</h2><ul>${r.missing.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : ''}
     <h2>Preparazione</h2><p>Generale ATA: ${pct(r.general)} · Specifica per questa procedura (${esc(r.subjects.join(', '))}): ${pct(r.specific)}</p>${bar(r.specific, 'Preparazione specifica')}
     ${r.weak.length ? `<p class="muted">Da rinforzare: ${esc(r.weak.join(', '))}.</p>` : ''}
@@ -434,7 +449,7 @@ VIEWS.proc = ({ id }) => {
 VIEWS.analyze = () => {
   const r = ui.analysis;
   return `<main class="wrap">${back('bandi', 'Bandi')}<h1>Analizza un bando</h1>
-    <p class="lead">Incolla il testo del bando (o di un avviso) oppure carica un file di testo. Estraggo date, requisiti e materie; tutto resta DA VERIFICARE.</p>
+    <p class="lead">Incolla il testo del bando (o di un avviso) oppure carica un file di testo. Trovo date, requisiti e materie. Prima di salvare una data, confrontala con il testo.</p>
     <label class="field">Testo<textarea id="bando-text" rows="8">${esc(ui.bandoText || '')}</textarea></label>
     <label class="field">Oppure un file: testo, PDF o foto<input type="file" accept=".txt,text/plain,.pdf,application/pdf,image/*" data-change="bandoFile"></label>
     <p class="muted small">PDF con testo: letti sul dispositivo. PDF scansionati e foto: servono l'AI e la connessione.</p>
@@ -457,18 +472,38 @@ VIEWS.news = () => {
   if (feed?.items?.length) { const latest = feed.items[0].firstSeen; if (st.feedSeen !== latest) setTimeout(() => store.mutate(s => { s.feedSeen = latest; }), 0); }
   return `<main class="wrap">${back('bandi', 'Bandi')}<h1>Novità dalle fonti ufficiali</h1>
     ${!feed ? `<p class="lead">${ONLINE_APP ? 'Nessun aggiornamento disponibile per ora.' : 'Questa funzione si attiva quando l\'app è pubblicata online con il controllo automatico (vedi GUIDA.md).'}</p>` : `
-    <p class="verify-box">${esc(feed.note || 'Elenco automatico: DA VERIFICARE sulla pagina originale.')}</p>
+    <p class="lead">${esc(feed.note || 'Link trovati sui siti ufficiali. Tocca un titolo per aprire la pagina.')}</p>
     <p class="muted small">Ultimo controllo: ${feed.updatedAt ? fmtDate(feed.updatedAt) + ' ' + new Date(feed.updatedAt).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : 'mai'}</p>
     ${(feed.sources || []).filter(x => !x.ok).map(x => `<p class="small">Non sono riuscito a leggere «${esc(x.name)}» (${esc(x.error || 'errore')}). Controllala a mano: <a href="${esc(x.url)}" target="_blank" rel="noopener">apri</a>.</p>`).join('')}
-    ${feed.items.length ? `<ul class="news">${feed.items.slice(0, 60).map(i => `<li>${fresh.has(i.id) ? '<span class="pill">nuovo</span> ' : ''}<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a><br><small class="muted">${esc(i.source || '')} · visto il ${fmtDate(i.firstSeen)}</small></li>`).join('')}</ul>` : '<p class="muted">Nessun link pertinente trovato finora.</p>'}`}
+    ${feed.items.length ? `<ul class="news">${feed.items.slice(0, 60).map(i => `<li>${i.kind === 'bando' ? '<span class="pill pill-non-pronto">bando</span> ' : i.kind === 'requisiti' ? '<span class="pill pill-quasi-pronto">CIAD/contratto</span> ' : ''}${fresh.has(i.id) ? '<span class="pill">nuovo</span> ' : ''}<a href="${esc(i.url)}" target="_blank" rel="noopener">${esc(i.title)}</a><br><small class="muted">${esc(i.source || '')} · visto il ${fmtDate(i.firstSeen)}</small></li>`).join('')}</ul>` : '<p class="muted">Nessun link pertinente trovato finora.</p>'}`}
   </main>`;
+};
+
+VIEWS.alert = () => {
+  const st = S(), all = view.params?.all, al = all ? (feed?.items || []).filter(i => i.kind === 'bando' || i.kind === 'requisiti') : openAlerts(st);
+  const bando = al.filter(i => i.kind === 'bando'), req = al.filter(i => i.kind === 'requisiti');
+  const p = st.procedures.find(x => x.id === 'p_terza2027'), dl = p?.deadlines?.find(d => d.id === 'd_open');
+  const link = i => `<li><a class="btn" href="${esc(i.url)}" target="_blank" rel="noopener">Apri: ${esc(i.title)}</a><br><small class="muted">${esc(i.source || '')} · trovato: ${fmtDate(i.firstSeen)}</small></li>`;
+  return `<main class="wrap">${back('bandi', 'Bandi')}<h1>${bando.length ? '📣 Novità sul bando ATA' : 'Novità ufficiale'}</h1>
+    ${!al.length ? '<p class="lead">Nessuna novità da leggere. Ti avviso io appena esce qualcosa.</p>' : ''}
+    ${bando.length ? `<p class="lead">Il Ministero o l'Ufficio scolastico ha pubblicato qualcosa sulle graduatorie ATA di terza fascia. Fai questi passi, uno alla volta.</p>
+    <ol class="steps">
+      <li><b>Apri la pagina ufficiale</b> e leggila con calma.<ul class="news">${bando.map(link).join('')}</ul></li>
+      <li><b>Cerca la data entro cui fare la domanda</b> e scrivila qui. Da quel momento ti ricordo ogni giorno quanto manca.
+        ${p && dl ? `<label class="field inline">Scadenza della domanda<input type="date" value="${dl.date || ''}" data-change="deadline" data-proc="${p.id}" data-dl="${dl.id}"></label>` : ''}</li>
+      <li><b>Prepara i documenti:</b> SPID o CIE; il diploma (voto, anno, scuola); la CIAD (titolo «EIPASS Standard», ente «Certipass Srl», data scritta sull'attestato).</li>
+      <li><b>Fai la domanda online</b> sul sito Istanze Online del Ministero, come spiegato nella pagina ufficiale. Non aspettare l'ultimo giorno.</li>
+      <li>Se qualcosa non ti è chiaro, mostra la pagina a Luca.</li>
+    </ol>` : ''}
+    ${req.length ? `<h2>Novità su CIAD o contratto</h2><p>Potrebbe cambiare i requisiti. Leggila e, se parla di CIAD o di assistenti amministrativi, mostrala a Luca.</p><ul class="news">${req.map(link).join('')}</ul>` : ''}
+    ${al.length && !all ? '<button class="btn primary" data-act="alertsDone">Fatto, ho letto</button>' : ''}</main>`;
 };
 
 VIEWS.material = () => {
   const st = S(), custom = st.customQuestions, aiOn = st.settings.aiMode === 'on';
   const byOrigin = {}; custom.forEach(q => { byOrigin[q.origin] = (byOrigin[q.origin] || 0) + 1; });
   return `<main class="wrap">${back('settings', 'Impostazioni')}<h1>Aggiungi domande</h1>
-    <p class="lead">Ci sono già ${allMcCount()} domande pronte. Qui puoi aggiungerne altre: tutte quelle aggiunte restano segnate come DA VERIFICARE.</p>
+    <p class="lead">Ci sono già ${allMcCount()} domande pronte. Qui puoi aggiungerne altre: restano distinte da quelle del pacchetto.</p>
     <section><h2>Crea domande da un testo ufficiale</h2>
       ${aiOn ? '' : '<p class="notice">Serve l\'AI: attivala nelle impostazioni.</p>'}
       <p class="muted small">Incolla un articolo di legge (per esempio da Normattiva) o carica un PDF. L\'AI scrive le domande solo da quel testo e cita la frase usata: se la frase non si trova nel testo, la domanda viene scartata.</p>
@@ -531,7 +566,7 @@ VIEWS.settings = () => {
     <p class="muted small">I promemoria del browser arrivano solo con l'app aperta o installata. Per avvisi sicuri usa l'esportazione nel calendario del telefono.</p></section>
   <section><h2>Intelligenza artificiale</h2>
     <p>L'app funziona completamente anche senza AI. Con l'AI attiva ottieni spiegazioni alternative, correzione delle risposte aperte e analisi approfondita dei bandi.</p>
-    <label class="check"><input type="checkbox" data-change="aiMode" ${s.aiMode === 'on' ? 'checked' : ''}> Usa l'AI quando serve</label>
+    <label class="check"><input type="checkbox" data-change="aiMode" ${s.aiMode === 'on' ? 'checked' : ''}><span>Usa l'AI quando serve</span></label>
     <label class="field">Chiave API Google AI Studio<input type="password" data-change="setting" data-k="apiKey" value="${esc(s.apiKey)}" autocomplete="off"></label>
     <label class="field">Modello<input data-change="setting" data-k="model" value="${esc(s.model)}"></label>
     <label class="field">Limite token al giorno<input type="number" min="1000" step="1000" data-change="setting" data-k="dailyTokenBudget" value="${s.dailyTokenBudget}"></label>
@@ -558,7 +593,7 @@ VIEWS.settings = () => {
   <section><h2>Contenuti e fonti</h2><p class="muted small">Versione contenuti: ${CONTENT_VERSION}. Ogni norma ha fonte e stato. Prima di affidarti a un dato, controlla la fonte ufficiale.</p>
     <details><summary>Verifica delle fonti (${SOURCES.filter(x => st.sourceChecks[x.id]).length} di ${SOURCES.length} verificate)</summary>
       <p class="muted small">Una persona apre la fonte ufficiale, controlla che le lezioni e le domande collegate siano corrette e preme «Verificata oggi». Dopo 12 mesi la verifica scade.</p>
-      <ul class="sources">${SOURCES.map(x => { const c = st.sourceChecks[x.id], old = c && Date.now() - c > 365 * DAY; return `<li><strong>${esc(x.title)}</strong> – ${esc(x.ref)}${x.status === 'da_verificare' ? ' <strong class="verify">DA VERIFICARE</strong>' : ''}<br>
+      <ul class="sources">${SOURCES.map(x => { const c = st.sourceChecks[x.id], old = c && Date.now() - c > 365 * DAY; return `<li><strong>${esc(x.title)}</strong> – ${esc(x.ref)}${x.official ? '' : ' <small class="muted">(fonte giornalistica)</small>'}<br>
         <small class="muted">${c ? `verificata il ${fmtDate(c)}${old ? ' – da ricontrollare' : ''}` : 'mai verificata da una persona'} · ${allQuestionsFor(x.id)} domande collegate</small><br>
         ${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">Apri la fonte</a> · ` : ''}<button class="link" data-act="checkSource" data-id="${x.id}">Verificata oggi</button></li>`; }).join('')}</ul></details></section>
   <section><h2>Ricomincia</h2><button class="link danger" data-act="reset">Cancella tutti i progressi</button></section></main>`;
@@ -649,6 +684,8 @@ A.procSim = d => {
   startRun({ id: uid('s'), minutes: qs.length, mode: 'simulation' }, { steps: qs.map(q => ({ t: 'mc', qid: q.id, block: 'quiz' })), exam: true, mode: 'simulation', procedure: p.id });
 };
 A.openProc = d => go('proc', { id: d.id });
+A.openBandoNews = () => go('alert', { all: true });
+A.alertsDone = () => { const ids = openAlerts(S()).map(i => i.id); store.mutate(s => { s.alertsDone = s.alertsDone || {}; for (const id of ids) s.alertsDone[id] = Date.now(); }); toast('Bene. Ti avviso io se esce altro.'); go('bandi'); };
 A.delProc = d => { if (!confirm('Rimuovere questa procedura?')) return; store.mutate(s => { s.procedures = s.procedures.filter(p => p.id !== d.id); s.tombstones[d.id] = Date.now(); }); go('bandi'); };
 A.analyze = () => { ui.bandoText = document.getElementById('bando-text').value; if (ui.bandoText.trim().length < 40) { toast('Incolla un testo un po\' più lungo.'); return; } ui.analysis = analyzeBandoOffline(ui.bandoText); render(); };
 A.analyzeAI = async () => {
@@ -688,7 +725,7 @@ A.genQuestions = async () => {
   if (!r.ok) { ui.genResult = `AI non disponibile: ${r.reason}.`; render(); return; }
   const { ok, rejected } = acceptAIQuestions(r.data, text, topic, ui.matSrc || null);
   store.mutate(s => { s.customQuestions.push(...ok); });
-  ui.genResult = `Aggiunte ${ok.length} domande a «${topicById(topic).name}».${rejected.length ? ` Scartate ${rejected.length} perché la citazione non era nel testo o il formato era sbagliato.` : ''} Compariranno nelle prossime sessioni, segnate DA VERIFICARE.`; render();
+  ui.genResult = `Aggiunte ${ok.length} domande a «${topicById(topic).name}».${rejected.length ? ` Scartate ${rejected.length} perché la citazione non era nel testo o il formato era sbagliato.` : ''} Compariranno nelle prossime sessioni.`; render();
 };
 A.delOrigin = d => { if (!confirm('Eliminare le domande «' + d.o + '»?')) return; store.mutate(s => { const now = Date.now(); for (const q of s.customQuestions) if (q.origin === d.o) s.tombstones[q.id] = now; s.customQuestions = s.customQuestions.filter(q => q.origin !== d.o); }); render(); };
 A.exportPack = () => { const t = exportPack(S().customQuestions, 'Domande di ' + (S().user?.name || 'ATA Coach')); download('ata-coach-pacchetto-' + dayKey() + '.json', t, 'application/json'); };
@@ -786,7 +823,9 @@ export async function boot() {
   window.addEventListener('online', () => runSync());
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !window.__SINGLE_FILE__) navigator.serviceWorker.register('./sw.js').catch(() => {});
   if (store.state.user && (!store.state.nextPlan || store.state.nextPlan.day < dayKey())) store.mutate(s => { s.nextPlan = { day: dayKey(), line: tomorrowLine(s, Date.now() - DAY) }; });
-  if (!store.state.user) go('onboarding'); else go(location.hash === '#news' ? 'news' : 'home');
+  if (!store.state.user) go('onboarding'); else routeFromHash('home');
+  // Tocco sulla notifica con l'app già aperta: cambia solo l'ancora, quindi la ascolto.
+  window.addEventListener('hashchange', () => { if (store.state.user) routeFromHash(null); });
   maybeSystemNotification();
   loadFeed();
   runSync();

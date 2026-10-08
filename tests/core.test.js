@@ -189,7 +189,7 @@ Le domande si presentano dal 28 maggio 2027 al 28/06/2027 tramite Istanze Online
   assert.ok(r.dates.some(d => d.iso === '2027-06-28' && d.kind === 'possibile scadenza'));
   assert.ok(r.dates.some(d => d.iso === '2024-05-21' && d.kind === 'riferimento normativo'));
   assert.ok(r.requirements.length >= 1);
-  assert.ok(r.warnings.some(w => /DA VERIFICARE/.test(w)));
+  assert.ok(r.warnings.some(w => /confronta le date/.test(w)));
 });
 
 test('store: export/import e migrazione, la chiave API non viene esportata', async () => {
