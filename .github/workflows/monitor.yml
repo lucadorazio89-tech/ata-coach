@@ -1,0 +1,44 @@
+name: Controlla le fonti ufficiali
+on:
+  schedule:
+    - cron: '17 5,11,17 * * *'   # tre volte al giorno (orari UTC)
+  workflow_dispatch:
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.run.outputs.changed }}
+      new_count: ${{ steps.run.outputs.new_count }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - id: run
+        run: node monitor/check-sources.mjs
+      - name: Salva il feed
+        if: steps.run.outputs.changed == 'true'
+        run: |
+          git config user.name "ata-coach-bot"
+          git config user.email "ata-coach-bot@users.noreply.github.com"
+          git add src/feed.json
+          git commit -m "Aggiornamento fonti ufficiali" || echo "niente da salvare"
+          git push
+      - name: Notifica le novità
+        if: steps.run.outputs.new_count != '0'
+        env:
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          PUSH_SUBSCRIPTION: ${{ secrets.PUSH_SUBSCRIPTION }}
+          MODE: news
+        run: |
+          npm install --no-save web-push@3
+          node monitor/send-push.mjs
+  deploy:
+    needs: check
+    if: needs.check.outputs.changed == 'true'
+    uses: ./.github/workflows/deploy.yml
