@@ -1,1 +1,122 @@
-{"schema":"ata-coach-feed/1","updatedAt":null,"note":"Verrà riempito automaticamente dal controllo delle fonti.","sources":[],"items":[]}
+{
+ "schema": "ata-coach-feed/1",
+ "updatedAt": "2026-10-09T11:57:16.376Z",
+ "note": "Link trovati sui siti ufficiali del Ministero e dell'Ufficio scolastico. Tocca un titolo per aprire la pagina originale.",
+ "sources": [
+  {
+   "id": "mim-graduatorie-ata",
+   "name": "Ministero – pagina Graduatorie ATA",
+   "url": "https://www.istruzione.it/graduatorie-ata/",
+   "checkedAt": "2026-10-09T11:57:12.920Z",
+   "ok": false,
+   "error": "HTTP 403"
+  },
+  {
+   "id": "mim-home",
+   "name": "Ministero – notizie in home page",
+   "url": "https://www.mim.gov.it/",
+   "checkedAt": "2026-10-09T11:57:13.525Z",
+   "ok": false,
+   "error": "HTTP 403"
+  },
+  {
+   "id": "usr-veneto",
+   "name": "Ufficio scolastico regionale del Veneto",
+   "url": "https://istruzioneveneto.gov.it/",
+   "checkedAt": "2026-10-09T11:57:14.006Z",
+   "ok": true,
+   "found": 1
+  },
+  {
+   "id": "uat-padova",
+   "name": "Ufficio scolastico di Padova e Rovigo",
+   "url": "https://padova.istruzioneveneto.gov.it/",
+   "checkedAt": "2026-10-09T11:57:15.144Z",
+   "ok": true,
+   "found": 9
+  }
+ ],
+ "items": [
+  {
+   "title": "Personale ATA – DSGA",
+   "url": "https://istruzioneveneto.gov.it/istruzione/personale-ata/",
+   "source": "Ufficio scolastico regionale del Veneto",
+   "kind": "notizia",
+   "id": "b25lL3BlcnNvbmFsZS1hdGEv",
+   "firstSeen": "2026-10-09T11:57:16.376Z"
+  },
+  {
+   "title": "Personale Ata",
+   "url": "https://padova.istruzioneveneto.gov.it/ata/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "notizia",
+   "id": "ZlbmV0by5nb3YuaXQvYXRhLw",
+   "firstSeen": "2026-10-09T11:57:16.376Z"
+  },
+  {
+   "title": "Conferimento supplenze al personale docente ed educativo per l’ a.s. 2026/27. Bollettino VIII turno di nomina.",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/10/07/conferimento-supplenze-al-personale-docente-ed-educativo-per-l-a-s-2026-27-bollettino-viii-turno-di-nomina/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "notizia",
+   "id": "ktdHVybm8tZGktbm9taW5hLw",
+   "firstSeen": "2026-10-09T11:57:16.376Z"
+  },
+  {
+   "title": "AVVISO PUBBLICO per lo svolgimento di funzioni di Direttore dei Servizi Generali e Amministrativi (profilo ATA previsto dal CCNL Comparto Istruzione e Ricerca) presso l’Istituto Comprensivo di Mestrino",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/10/05/avviso-pubblico-per-direttore-dei-servizi-generali-e-amministrativi-profilo-ata-previsto-dal-ccnl-comparto-istruzione-e-ricerca-presso-listituto-comprensivo-di-mestrino/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "requisiti",
+   "id": "bnNpdm8tZGktbWVzdHJpbm8v",
+   "firstSeen": "2026-10-09T11:57:16.376Z"
+  },
+  {
+   "title": "Conferimento supplenze al personale docente ed educativo per l’ a.s. 2026/27. Bollettino VII turno di nomina e 7a Restituzione di posti alle scuole per esaurimento aspiranti nominabili da GPS.",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/10/02/conferimento-supplenze-al-personale-docente-ed-educativo-per-l-a-s-2026-27-bollettino-vii-turno-di-nomina-e-7a-restituzione-di-posti-alle-scuole-per-esaurimento-aspiranti-nominabili-da-gps/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "notizia",
+   "id": "ub21pbmFiaWxpLWRhLWdwcy8",
+   "firstSeen": "2026-10-09T11:57:16.376Z"
+  },
+  {
+   "title": "ASSEGNAZIONE DI INCARICHI ANNUALI PER LO SVOLGIMENTO DI FUNZIONI DI DIRETTORE DEI SERVIZI GENERALI E AMMINISTRATIVI (PROFILO ATA PREVISTO DAL CCNL COMPARTO ISTRUZIONE E RICERCA) – ANNO SCOLASTICO 2026-2027 PROVINCIA DI P",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/10/02/assegnazione-di-incarichi-annuali-per-lo-svolgimento-di-funzioni-di-direttore-dei-servizi-generali-e-amministrativi-profilo-ata-previsto-dal-ccnl-comparto-istruzione-e-ricerca-anno-scolast/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "requisiti",
+   "id": "lcmNhLWFubm8tc2NvbGFzdC8",
+   "firstSeen": "2026-10-09T11:57:16.376Z"
+  },
+  {
+   "title": "Conferimento supplenze al personale docente ed educativo per l’ a.s. 2026/27. Bollettino VI turno di nomina e 6a Restituzione di posti alle scuole per esaurimento aspiranti nominabili da GPS.",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/09/30/conferimento-supplenze-al-personale-docente-ed-educativo-per-l-a-s-2026-27-bollettino-vi-turno-di-nomina-e-6-restituzione-di-posti-alle-scuole-per-esaurimento-aspiranti-nominabili-da/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "notizia",
+   "id": "udGktbm9taW5hYmlsaS1kYS8",
+   "firstSeen": "2026-10-09T11:57:16.376Z"
+  },
+  {
+   "title": "Conferimento supplenze al personale docente ed educativo per l’a.s. 2026/27. Bollettino V turno di nomina e 5a Restituzione di posti alle scuole per esaurimento aspiranti nominabili da GPS.",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/09/25/conferimento-supplenze-al-personale-docente-ed-educativo-per-la-s-2026-27-bollettino-v-turno-di-nomina-e-5a-restituzione-di-posti-alle-scuole-per-esaurimetno-aspiranti-nominabili-da-gps/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "notizia",
+   "id": "ub21pbmFiaWxpLWRhLWdwcy8",
+   "firstSeen": "2026-10-09T11:57:16.376Z"
+  },
+  {
+   "title": "AVVISO PUBBLICO per il conferimento di incarico per lo svolgimento fino al 31/08/2027 di funzioni di Direttore dei Servizi Generali e Amministrativi (profilo ATA previsto dal CCNL Comparto Istruzione e Ricerca) – anno sc",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/09/23/avviso-pubblico-per-il-conferimento-di-incarico-per-lo-svolgimento-fino-al-31-08-2027-di-funzioni-di-direttore-dei-servizi-generali-e-amministrativi-profilo-ata-previsto-dal-ccnl-comparto-istruzione-3/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "requisiti",
+   "id": "hcnRvLWlzdHJ1emlvbmUtMy8",
+   "firstSeen": "2026-10-09T11:57:16.376Z"
+  },
+  {
+   "title": "Conferimento supplenze al personale docente ed educativo per l’a.s. 2026/27. Bollettino IV turno di nomina e 4a Restituzione di posti alle scuole per esaurimetno aspiranti nominabili da GPS.",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/09/22/conferimento-supplenze-al-personale-docente-ed-educativo-per-la-s-2026-27-bollettino-iv-turno-di-nomina-e-4a-restituzione-di-posti-alle-scuole-per-esaurimetno-aspiranti-nominabili-da-gps/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "notizia",
+   "id": "bm9taW5hYmlsaS1kYS1ncHMv",
+   "firstSeen": "2026-10-09T11:57:16.376Z"
+  }
+ ],
+ "heartbeat": "2026-10-09T11:57:16.376Z"
+}
