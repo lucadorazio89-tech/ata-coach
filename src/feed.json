@@ -1,13 +1,13 @@
 {
  "schema": "ata-coach-feed/1",
- "updatedAt": "2026-10-09T11:57:16.376Z",
+ "updatedAt": "2026-10-12T13:15:57.569Z",
  "note": "Link trovati sui siti ufficiali del Ministero e dell'Ufficio scolastico. Tocca un titolo per aprire la pagina originale.",
  "sources": [
   {
    "id": "mim-graduatorie-ata",
    "name": "Ministero – pagina Graduatorie ATA",
    "url": "https://www.istruzione.it/graduatorie-ata/",
-   "checkedAt": "2026-10-09T11:57:12.920Z",
+   "checkedAt": "2026-10-12T13:15:52.850Z",
    "ok": false,
    "error": "HTTP 403"
   },
@@ -15,7 +15,7 @@
    "id": "mim-home",
    "name": "Ministero – notizie in home page",
    "url": "https://www.mim.gov.it/",
-   "checkedAt": "2026-10-09T11:57:13.525Z",
+   "checkedAt": "2026-10-12T13:15:53.659Z",
    "ok": false,
    "error": "HTTP 403"
   },
@@ -23,7 +23,7 @@
    "id": "usr-veneto",
    "name": "Ufficio scolastico regionale del Veneto",
    "url": "https://istruzioneveneto.gov.it/",
-   "checkedAt": "2026-10-09T11:57:14.006Z",
+   "checkedAt": "2026-10-12T13:15:54.841Z",
    "ok": true,
    "found": 1
   },
@@ -31,12 +31,20 @@
    "id": "uat-padova",
    "name": "Ufficio scolastico di Padova e Rovigo",
    "url": "https://padova.istruzioneveneto.gov.it/",
-   "checkedAt": "2026-10-09T11:57:15.144Z",
+   "checkedAt": "2026-10-12T13:15:56.209Z",
    "ok": true,
    "found": 9
   }
  ],
  "items": [
+  {
+   "title": "2° AVVISO PUBBLICO per il conferimento di incarico per lo svolgimento fino al 31.08.2026 di funzioni di Direttore dei Servizi Generali e Amministrativi (profilo ATA previsto dal CCNL Comparto Istruzione e Ricerca) presso",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/10/12/2-avviso-pubblico-per-il-conferimento-di-incarico-per-lo-svolgimento-fino-al-31-08-2026-di-funzioni-di-direttore-dei-servizi-generali-e-amministrativi-profilo-ata-previsto-dal-ccnl-comparto-ist/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "requisiti",
+   "id": "NjbmwtY29tcGFydG8taXN0Lw",
+   "firstSeen": "2026-10-12T13:15:57.569Z"
+  },
   {
    "title": "Personale ATA – DSGA",
    "url": "https://istruzioneveneto.gov.it/istruzione/personale-ata/",
