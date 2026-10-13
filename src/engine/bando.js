@@ -24,7 +24,7 @@ function parseDates(text) {
     const ctx = text.slice(Math.max(0, d.index - 90), d.index + d.raw.length + 40).replace(/\s+/g, ' ').trim();
     const isDeadline = /(entro|scadenza|termine|fino al|non oltre|dal .* al)/i.test(ctx);
     const isNorm = /(d\.?\s?lgs|decreto|legge|d\.?p\.?r|d\.?m\.?|n\.\s?\d)/i.test(text.slice(Math.max(0, d.index - 25), d.index));
-    return { raw: d.raw, iso: d.date.toISOString().slice(0, 10), context: ctx, kind: isNorm ? 'riferimento normativo' : isDeadline ? 'possibile scadenza' : 'data', verified: false };
+    return { raw: d.raw, iso: `${d.date.getFullYear()}-${String(d.date.getMonth() + 1).padStart(2, '0')}-${String(d.date.getDate()).padStart(2, '0')}`, context: ctx, kind: isNorm ? 'riferimento normativo' : isDeadline ? 'possibile scadenza' : 'data', verified: false };
   });
 }
 

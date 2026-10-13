@@ -1,6 +1,6 @@
 // Crea dist/ata-coach.html: un unico file autosufficiente (nessun server necessario).
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-const ORDER = ['core/util.js', 'core/store.js', 'content/seed.js', 'engine/srs.js', 'engine/learning.js', 'engine/quiz.js', 'engine/scheduler.js', 'engine/reporting.js', 'engine/bando.js', 'engine/packs.js', 'core/sync.js', 'ai/ai.js', 'ui/app.js'];
+const ORDER = ['core/util.js', 'content/eipass.js', 'core/store.js', 'content/seed.js', 'engine/srs.js', 'engine/learning.js', 'engine/quiz.js', 'engine/scheduler.js', 'engine/reporting.js', 'engine/bando.js', 'engine/packs.js', 'core/sync.js', 'ai/ai.js', 'ui/app.js'];
 let js = '';
 for (const f of ORDER) {
   let src = readFileSync('src/' + f, 'utf8');
