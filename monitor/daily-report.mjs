@@ -13,6 +13,9 @@ import { DAY, startOfDay, dayKey, fmtMinutes, fmtDate } from '../src/core/util.j
 
 const [, , file = 'ata-coach-sync.json', outDir = 'out'] = process.argv;
 const now = Date.now();
+// GitHub può far partire le attività programmate anche con ore di ritardo: se l'invio scivola dopo mezzanotte
+// (prima delle 6), il riepilogo parla comunque della giornata appena finita, non di quella appena cominciata.
+export function reportDay(t = Date.now()) { return new Date(t).getHours() < 6 ? startOfDay(t) - 60000 : t; }
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const pct = x => x == null ? '—' : Math.round(x * 100) + '%';
 const giorno = d => new Date(d).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -120,7 +123,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   } else missing = true;
   const r = missing
     ? { subject: 'ATA Coach – riepilogo non disponibile', text: 'Nel repository dei progressi non c\'è ancora il file di sincronizzazione: l\'app non ha mai sincronizzato.', html: '<p>Nel repository dei progressi non c\'è ancora il file di sincronizzazione: l\'app non ha mai sincronizzato.</p>' }
-    : buildReport(state, meta);
+    : buildReport(state, meta, reportDay(now));
   mkdirSync(outDir, { recursive: true });
   writeFileSync(`${outDir}/riepilogo.html`, r.html); writeFileSync(`${outDir}/riepilogo.txt`, r.text);
   if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `subject=${r.subject.replace(/\n/g, ' ')}\n`);
