@@ -1,13 +1,13 @@
 {
  "schema": "ata-coach-feed/1",
- "updatedAt": "2026-10-13T21:52:59.721Z",
+ "updatedAt": "2026-10-14T15:51:10.151Z",
  "note": "Link trovati sui siti ufficiali del Ministero e dell'Ufficio scolastico. Tocca un titolo per aprire la pagina originale.",
  "sources": [
   {
    "id": "mim-graduatorie-ata",
    "name": "Ministero – pagina Graduatorie ATA",
    "url": "https://www.istruzione.it/graduatorie-ata/",
-   "checkedAt": "2026-10-13T21:52:55.473Z",
+   "checkedAt": "2026-10-14T15:51:06.916Z",
    "ok": false,
    "error": "HTTP 403"
   },
@@ -15,7 +15,7 @@
    "id": "mim-home",
    "name": "Ministero – notizie in home page",
    "url": "https://www.mim.gov.it/",
-   "checkedAt": "2026-10-13T21:52:56.196Z",
+   "checkedAt": "2026-10-14T15:51:07.332Z",
    "ok": false,
    "error": "HTTP 403"
   },
@@ -23,7 +23,7 @@
    "id": "usr-veneto",
    "name": "Ufficio scolastico regionale del Veneto",
    "url": "https://istruzioneveneto.gov.it/",
-   "checkedAt": "2026-10-13T21:52:57.359Z",
+   "checkedAt": "2026-10-14T15:51:08.325Z",
    "ok": true,
    "found": 1
   },
@@ -31,12 +31,20 @@
    "id": "uat-padova",
    "name": "Ufficio scolastico di Padova e Rovigo",
    "url": "https://padova.istruzioneveneto.gov.it/",
-   "checkedAt": "2026-10-13T21:52:58.522Z",
+   "checkedAt": "2026-10-14T15:51:09.222Z",
    "ok": true,
    "found": 9
   }
  ],
  "items": [
+  {
+   "title": "Conferimento supplenze al personale docente ed educativo per l’ a.s. 2026/27. Bollettino X turno di nomina.",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/10/14/conferimento-supplenze-al-personale-docente-ed-educativo-per-l-a-s-2026-27-bollettino-x-turno-di-nomina/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "notizia",
+   "id": "gtdHVybm8tZGktbm9taW5hLw",
+   "firstSeen": "2026-10-14T15:51:10.151Z"
+  },
   {
    "title": "Personale ATA – DSGA",
    "url": "https://istruzioneveneto.gov.it/istruzione/personale-ata/",
