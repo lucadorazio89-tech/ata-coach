@@ -133,7 +133,7 @@ test('codice di collegamento e testo con accenti', () => {
 
 test('migrazione v3: registro lezioni e test iniziale marcati', () => {
   const m = migrate({ schemaVersion: 2, lessonsRead: { l_241: NOW }, sessions: [{ id: 'd', diagnostic: true }], attempts: [{ id: 'a', session: 'd', qid: 'q001', topic: 't_auto', correct: false, at: NOW }] });
-  assert.equal(m.lessonLog.length, 1); assert.equal(m.attempts[0].diag, true); assert.equal(m.schemaVersion, 4);
+  assert.equal(m.lessonLog.length, 1); assert.equal(m.attempts[0].diag, true); assert.equal(m.schemaVersion, 5);
   rebuildDerived(m); assert.equal(Object.keys(m.cards).length, 0);
 });
 

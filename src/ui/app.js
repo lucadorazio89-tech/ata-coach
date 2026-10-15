@@ -6,7 +6,7 @@ import { ERROR_TYPES, allQuestions, questionById, recordAttempt, recordOpenAnswe
 import { pickQuestions, diagnosticQuestions, simulationQuestions, gradeOpenOffline, eipSimulation, eipSimResult, EIP_PART } from '../engine/quiz.js';
 import { EIP_MODULES, EIP_LEVELS } from '../content/eipass.js';
 import { buildSession, tomorrowLine, recoveryInfo, projectCalendar, suggestedMinutesToday, studiedMinutesOn, planStats, daysToExam } from '../engine/scheduler.js';
-import { sessionReport, periodReport, procedureReport, shareText } from '../engine/reporting.js';
+import { sessionReport, periodReport, procedureReport, shareText, addActive } from '../engine/reporting.js';
 import { analyzeBandoOffline } from '../engine/bando.js';
 import { AIService } from '../ai/ai.js';
 import { validatePack, exportPack, acceptAIQuestions } from '../engine/packs.js';
@@ -210,11 +210,12 @@ function pcAdjust(steps, mode) {
   return out;
 }
 function startRun(plan, opts = {}) {
+  archiveCurrent();
   const steps = pcAdjust(opts.steps || stepsFromPlan(plan), opts.mode || plan.mode || 'auto');
   if (!steps.length) { toast(opts.emptyMsg || 'Niente da fare qui adesso.'); return; }
   // le opzioni si mescolano ogni volta: la posizione della risposta giusta non deve aiutare a indovinare
   for (const st of steps) if (st.t === 'mc' && !st.order) { const q = questionById(S(), st.qid); if (q) st.order = shuffle(q.options.map((_, i) => i)); }
-  run = { id: plan.id || uid('s'), plan: { minutes: plan.minutes, why: plan.why || [], focusTopic: plan.focusTopic || null }, steps, i: 0, mode: opts.mode || plan.mode || 'auto', exam: !!opts.exam, diagnostic: !!opts.diagnostic, procedure: opts.procedure || null, startedAt: Date.now(), stepStart: Date.now(), before: masteryMap(), lessons: [], answered: null, unsure: false, timeLimit: opts.exam && !opts.noTimer ? steps.length * 60000 : null };
+  run = { id: plan.id || uid('s'), plan: { minutes: plan.minutes, why: plan.why || [], focusTopic: plan.focusTopic || null }, steps, i: 0, mode: opts.mode || plan.mode || 'auto', exam: !!opts.exam, diagnostic: !!opts.diagnostic, procedure: opts.procedure || null, startedAt: Date.now(), stepStart: Date.now(), activeMs: 0, activeByDay: {}, lastTick: Date.now(), before: masteryMap(), lessons: [], answered: null, unsure: false, timeLimit: opts.exam && !opts.noTimer ? steps.length * 60000 : null };
   store.mutate(s => { s.current = run; if (run.mode === 'auto') s.plans[dayKey()] = { createdAt: Date.now(), minutes: plan.minutes, focusTopic: plan.focusTopic, why: plan.why }; });
   go('run');
 }
@@ -224,10 +225,23 @@ function nextStep() {
   store.mutate(s => { s.current = run; });
   if (run.i >= run.steps.length) finishRun(); else { render(); window.scrollTo(0, 0); }
 }
+// Tempo attivo: si conta solo mentre Giorgia usa l'app (vedi addActive nel motore).
+const stepKind = r => { const t = r?.steps?.[r.i]?.t; return t === 'lesson' ? 'lesson' : t === 'open' ? 'open' : 'mc'; };
+function tick() { if (run) addActive(run, Date.now(), stepKind(run), document.visibilityState !== 'hidden'); }
+function closeRun(r, endedAt) {
+  const session = { id: r.id, mode: r.mode, procedure: r.procedure, startedAt: r.startedAt, endedAt, lessons: r.lessons, plan: r.plan, diagnostic: r.diagnostic, activeMs: r.activeMs || 0, activeByDay: r.activeByDay || {} };
+  store.mutate(s => { session.report = sessionReport(s, session, r.before); if (r.mode === 'eipsim') session.report.eip = eipSimResult(s, session.id); s.sessions.push(session); recordHistory(s); if (s.current?.id === r.id) s.current = null; s.nextPlan = { day: dayKey(Date.now() + DAY), line: session.report.tomorrow }; });
+  return session;
+}
+// Una sessione lasciata a metà e non ripresa: il tempo fatto conta lo stesso.
+function archiveCurrent(reason) {
+  const c = S().current; if (!c || (run && run.id === c.id)) return;
+  if ((c.i || 0) > 0 || (c.activeMs || 0) >= 30000) closeRun(c, c.lastTick || c.startedAt); // aperta e chiusa subito: non conta
+  else store.mutate(s => { s.current = null; });
+}
 function finishRun() {
-  clearInterval(timerId);
-  const session = { id: run.id, mode: run.mode, procedure: run.procedure, startedAt: run.startedAt, endedAt: Date.now(), lessons: run.lessons, plan: run.plan, diagnostic: run.diagnostic };
-  store.mutate(s => { session.report = sessionReport(s, session, run.before); if (run.mode === 'eipsim') session.report.eip = eipSimResult(s, session.id); s.sessions.push(session); recordHistory(s); s.current = null; s.nextPlan = { day: dayKey(Date.now() + DAY), line: session.report.tomorrow }; });
+  clearInterval(timerId); tick();
+  const session = closeRun(run, Date.now());
   run = null; go('report', { id: session.id }); syncSoon(2000);
 }
 
@@ -663,8 +677,8 @@ A.obFinish = () => {
 A.auto = d => startAuto(+d.min);
 A.lazy = () => startAuto(5, 'lazy');
 A.errors = () => startRun(buildSession(S(), 15, { mode: 'errors' }), { emptyMsg: 'Non hai errori da ripassare. Ottimo.' });
-A.resume = () => { run = S().current; run.stepStart = Date.now(); go('run'); };
-A.exitRun = () => { store.mutate(s => { s.current = run; }); run = null; go('home'); };
+A.resume = () => { run = S().current; run.stepStart = Date.now(); run.lastTick = Date.now(); go('run'); }; // la pausa non conta
+A.exitRun = () => { tick(); store.mutate(s => { s.current = run; }); run = null; go('home'); };
 A.unsure = () => { run.unsure = !run.unsure; render(); };
 A.answer = d => {
   if (run.answered) return;
@@ -869,19 +883,23 @@ export async function boot() {
     if (c && confirm('Collegare questo dispositivo ai progressi salvati in «' + c.repo + '»?')) { store.state.sync = { ...store.state.sync, repo: c.repo, token: c.token, lastError: null }; await store.save(); }
   }
   document.addEventListener('visibilitychange', () => {
+    if (run) { if (document.visibilityState === 'hidden') { addActive(run, Date.now(), stepKind(run), true); store.state.current = run; store.save(); } else run.lastTick = Date.now(); }
     if (document.visibilityState === 'hidden' && syncTimer) runSync();
     if (document.visibilityState === 'visible' && syncOn() && Date.now() - (S().sync.lastSyncAt || 0) > 120000) runSync();
   });
   window.addEventListener('online', () => runSync());
   if ('serviceWorker' in navigator && location.protocol.startsWith('http') && !window.__SINGLE_FILE__) navigator.serviceWorker.register('./sw.js').catch(() => {});
   if (store.state.user && (!store.state.nextPlan || store.state.nextPlan.day < dayKey())) store.mutate(s => { s.nextPlan = { day: dayKey(), line: tomorrowLine(s, Date.now() - DAY) }; });
+  if (store.state.current && dayKey(store.state.current.lastTick || store.state.current.startedAt) < dayKey()) archiveCurrent();
   if (!store.state.user) go('onboarding'); else routeFromHash('home');
   // Tocco sulla notifica con l'app già aperta: cambia solo l'ancora, quindi la ascolto.
   window.addEventListener('hashchange', () => { if (store.state.user) routeFromHash(null); });
   maybeSystemNotification();
   loadFeed();
   runSync();
-  window.addEventListener('beforeunload', () => { if (run) { store.state.current = run; } store.save(); });
+  window.addEventListener('beforeunload', () => { if (run) { tick(); store.state.current = run; } store.save(); });
+  // Ogni tocco, tasto o scorrimento durante una sessione fa avanzare il tempo attivo.
+  for (const ev of ['pointerdown', 'keydown', 'input', 'scroll']) document.addEventListener(ev, () => { if (run) tick(); }, { passive: true, capture: true });
 }
 
 if (typeof window !== 'undefined' && !window.__NO_BOOT__) boot();

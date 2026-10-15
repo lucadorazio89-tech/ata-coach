@@ -1,7 +1,7 @@
 // v0.6: email di riepilogo serale.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildReport, ciadSummary } from '../monitor/daily-report.mjs';
+import { buildReport, ciadSummary, reportDay } from '../monitor/daily-report.mjs';
 import { emptyState } from '../src/core/store.js';
 import { recordAttempt, allQuestions } from '../src/engine/learning.js';
 import { DAY, startOfDay } from '../src/core/util.js';
@@ -46,4 +46,11 @@ test('CIAD «pronta»: parte superata in due giorni diversi con almeno 9 Base su
   assert.equal(c.find(p => p.n === 3).ready, true);
   assert.equal(c.find(p => p.n === 4).ready, false, '7 su 12 supera la parte ma senza margine');
   assert.equal(c.find(p => p.n === 1).tries, 0);
+});
+
+test('invio in ritardo dopo mezzanotte: il riepilogo resta sulla giornata appena finita', () => {
+  const late = new Date('2026-10-14T01:05:00').getTime();
+  const r = buildReport(state(), { updatedAt: NOW }, reportDay(late));
+  assert.match(r.subject, /martedì 13 ottobre: 20 min di studio/);
+  assert.equal(reportDay(NOW), NOW, 'alle 20 non cambia niente');
 });

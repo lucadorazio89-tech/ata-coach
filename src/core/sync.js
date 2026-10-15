@@ -30,7 +30,7 @@ export function mergePayloads(a, b) {
     attempts: byId(a.attempts, b.attempts).sort((x, y) => x.at - y.at),
     errors: byId(a.errors, b.errors, (x, y) => ({ ...x, resolved: !!(x.resolved || y.resolved), resolvedAt: maxN(x.resolvedAt, y.resolvedAt),
       userType: (y.userTypeAt || 0) > (x.userTypeAt || 0) ? y.userType : (x.userType ?? y.userType ?? null), userTypeAt: maxN(x.userTypeAt, y.userTypeAt) })).sort((x, y) => x.at - y.at),
-    sessions: byId(a.sessions, b.sessions).sort((x, y) => x.startedAt - y.startedAt),
+    sessions: byId(a.sessions, b.sessions, (x, y) => (x.report?.wallMinutes == null && y.report?.wallMinutes != null ? y : x)).sort((x, y) => x.startedAt - y.startedAt), // vince la versione con il tempo corretto
     lessonsRead: maxMap(a.lessonsRead, b.lessonsRead),
     lessonLog: byId(a.lessonLog, b.lessonLog).sort((x, y) => x.at - y.at),
     history, plans,

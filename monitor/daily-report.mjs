@@ -2,7 +2,7 @@
 // e prepara oggetto, versione HTML e versione testo. Uso: node daily-report.mjs <ata-coach-sync.json> <cartella-uscita>
 // Gira dentro il repository privato: i dati di Giorgia non passano da repository pubblici e non finiscono nei log.
 import { readFileSync, writeFileSync, mkdirSync, existsSync, appendFileSync } from 'node:fs';
-import { emptyState, migrate } from '../src/core/store.js';
+import { emptyState, migrate, fixInflatedSessions } from '../src/core/store.js';
 import { applyPayload } from '../src/core/sync.js';
 import { periodReport, forecast } from '../src/engine/reporting.js';
 import { tomorrowLine, studiedMinutesOn } from '../src/engine/scheduler.js';
@@ -119,7 +119,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   if (existsSync(file)) {
     const data = JSON.parse(readFileSync(file, 'utf8'));
     if (data?.app !== 'ata-coach') throw new Error('Il file non è di ATA Coach.');
-    meta = data.meta; state = migrate(state); applyPayload(state, data.payload || {});
+    meta = data.meta; state = migrate(state); applyPayload(state, data.payload || {}); fixInflatedSessions(state);
   } else missing = true;
   const r = missing
     ? { subject: 'ATA Coach – riepilogo non disponibile', text: 'Nel repository dei progressi non c\'è ancora il file di sincronizzazione: l\'app non ha mai sincronizzato.', html: '<p>Nel repository dei progressi non c\'è ancora il file di sincronizzazione: l\'app non ha mai sincronizzato.</p>' }

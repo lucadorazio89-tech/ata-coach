@@ -21,9 +21,11 @@ export function sessionReport(state, session, before, now = Date.now()) {
   const errorTypes = {};
   for (const e of errs) errorTypes[e.type] = (errorTypes[e.type] || 0) + 1;
   const toReview = [...new Set(errs.map(e => topicById(e.topic).name))];
-  const minutes = Math.max(1, Math.round(((session.endedAt || now) - session.startedAt) / 60000));
+  // Tempo ATTIVO (con l'app davanti), non il tempo trascorso tra inizio e fine: pause e app lasciata aperta non contano.
+  const byDay = session.activeByDay ? Object.fromEntries(Object.entries(session.activeByDay).map(([k, ms]) => [k, Math.round(ms / 60000)]).filter(([, m]) => m > 0)) : null;
+  const minutes = session.activeMs != null ? Math.max(1, Math.round(session.activeMs / 60000)) : Math.max(1, Math.round(((session.endedAt || now) - session.startedAt) / 60000));
   return {
-    minutes, activities: (session.lessons || []).length + (mc.length ? 1 : 0) + atts.filter(a => a.level === 'spiegazione').length,
+    minutes, ...(byDay && Object.keys(byDay).length > 1 ? { byDay } : {}), activities: (session.lessons || []).length + (mc.length ? 1 : 0) + atts.filter(a => a.level === 'spiegazione').length,
     lessons: (session.lessons || []).length, quizTotal: mc.length, quizCorrect: correct, score: mc.length ? Math.round((correct / mc.length) * 100) : null,
     errors: errs.length, errorTypes, improvements, critical, toReview, tomorrow: tomorrowLine(state, now)
   };
@@ -37,7 +39,7 @@ export function periodReport(state, days = 7, now = Date.now()) {
   const perDay = [];
   for (let i = 0; i < days; i++) {
     const d = from + i * DAY, k = dayKey(d);
-    perDay.push({ date: d, minutes: sessions.filter(s => dayKey(s.startedAt) === k).reduce((a, s) => a + (s.report?.minutes || 0), 0) });
+    perDay.push({ date: d, minutes: state.sessions.reduce((a, s) => a + sessionMinutesOn(s, k), 0) });
   }
   const bySubject = SUBJECTS.map(s => {
     const ids = TOPICS.filter(t => t.subject === s.id).map(t => t.id);
@@ -91,4 +93,30 @@ export function shareText(state, now = Date.now()) {
   const r = periodReport(state, 7, now);
   const name = state.user?.name || 'Giorgia';
   return `ATA Coach – settimana di ${name}\nStudio: ${fmtMinutes(r.minutes)} in ${r.sessions} sessioni\nQuiz: ${r.quiz}${r.accuracy != null ? ` (${Math.round(r.accuracy * 100)}% giuste)` : ''}\nPreparazione: ${Math.round(r.mastery * 100)}% – ${r.status}\nProgramma coperto: ${Math.round(r.coverage * 100)}%\n${tomorrowLine(state, now)}`;
+}
+
+// ---------- Tempo di studio attivo ----------
+// Ogni interazione (tocco, tasto, scorrimento) aggiunge il tempo dall'interazione precedente, ma al massimo:
+// 3 minuti su una domanda a scelta multipla, 8 minuti su una lezione o una domanda aperta (si legge o si scrive).
+// Con l'app nascosta (schermo spento, altra app) non si conta niente; la pausa tra «Esci» e «Riprendi» nemmeno.
+export const ACTIVE_CAP = { mc: 3 * 60000, lesson: 8 * 60000, open: 8 * 60000 };
+export function addActive(run, now = Date.now(), kind = 'mc', visible = true) {
+  if (run.lastTick && visible && now > run.lastTick) {
+    const add = Math.min(now - run.lastTick, ACTIVE_CAP[kind] || ACTIVE_CAP.mc), k = dayKey(run.lastTick);
+    run.activeMs = (run.activeMs || 0) + add;
+    run.activeByDay = run.activeByDay || {}; run.activeByDay[k] = (run.activeByDay[k] || 0) + add;
+  }
+  run.lastTick = now;
+  return run;
+}
+// Minuti di una sessione in un certo giorno (una sessione ripresa il giorno dopo si divide tra i due giorni).
+export function sessionMinutesOn(s, k) {
+  if (s.report?.byDay) return s.report.byDay[k] || 0;
+  return dayKey(s.startedAt) === k ? (s.report?.minutes || 0) : 0;
+}
+// Stima per le sessioni registrate prima del tempo attivo: tempo delle risposte (max 3 min l'una) + 3 min per lezione.
+export function estimateActiveMinutes(state, session) {
+  const atts = state.attempts.filter(a => a.session === session.id);
+  const ms = atts.reduce((t, a) => t + Math.min(a.ms || 30000, a.level === 'spiegazione' ? ACTIVE_CAP.open : ACTIVE_CAP.mc), 0) + (session.lessons || []).length * 180000;
+  return Math.max(1, Math.round(ms / 60000));
 }

@@ -1,4 +1,5 @@
 // Motore di pianificazione. Decide cosa fare, quanto, in che ordine. Funziona senza AI.
+import { sessionMinutesOn } from './reporting.js';
 import { DAY, clamp, uid, dayKey, daysBetween, startOfDay, avg } from '../core/util.js';
 import { TOPICS, GOALS, lessonForTopic, topicById, OPEN_QUESTIONS } from '../content/seed.js';
 import { getStat, mastery, retention, questionById } from './learning.js';
@@ -199,7 +200,7 @@ export function weeklyMinutes(state) { return (state.user?.availability || []).r
 
 export function studiedMinutesOn(state, now = Date.now()) {
   const k = dayKey(now);
-  return state.sessions.filter(s => dayKey(s.startedAt) === k).reduce((a, s) => a + (s.report?.minutes || 0), 0);
+  return state.sessions.reduce((a, s) => a + sessionMinutesOn(s, k), 0);
 }
 
 export function suggestedMinutesToday(state, now = Date.now()) {

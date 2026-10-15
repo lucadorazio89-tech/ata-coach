@@ -1,5 +1,5 @@
 // Service worker: app offline + notifiche push personalizzate con i dati locali.
-const CACHE = 'ata-coach-v6';
+const CACHE = 'ata-coach-v7';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './ui/styles.css', './ui/app.js',
   './core/util.js', './core/store.js', './content/eipass.js', './content/seed.js', './engine/srs.js', './engine/learning.js', './engine/quiz.js',
   './engine/scheduler.js', './engine/reporting.js', './engine/bando.js', './engine/packs.js', './core/sync.js', './ai/ai.js'];
@@ -45,7 +45,7 @@ self.addEventListener('push', e => {
     if (data.kind === 'reminder') try {
       const st = await readState(), today = dayKey(Date.now());
       if (st) {
-        const mins = (st.sessions || []).filter(s => dayKey(s.startedAt) === today).reduce((a, s) => a + ((s.report && s.report.minutes) || 0), 0);
+        const mins = (st.sessions || []).reduce((a, s) => a + (s.report && s.report.byDay ? (s.report.byDay[today] || 0) : dayKey(s.startedAt) === today ? ((s.report && s.report.minutes) || 0) : 0), 0);
         const plan = st.nextPlan && st.nextPlan.day === today ? st.nextPlan.line.replace(/^DOMANI/, 'OGGI') : null;
         if (mins > 0) { title = 'Oggi hai già studiato'; body = `${mins} minuti fatti. Brava. Domani si continua.`; }
         else body = plan || 'Hai qualche minuto? Premi Fai tu, decido io cosa studiare.';

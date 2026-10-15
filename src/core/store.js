@@ -2,8 +2,9 @@
 // Adapter: IndexedDB (browser), localStorage (fallback), memoria (test).
 import { dayKey } from './util.js';
 import { PROCEDURE_TEMPLATES } from '../content/seed.js';
+import { estimateActiveMinutes } from '../engine/reporting.js';
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export function emptyState() {
   return {
@@ -50,8 +51,19 @@ export const MIGRATIONS = {
     return s;
   },
   // v4: procedure ufficiali aggiornate (bando 2027 e CIAD EIPASS Standard)
-  4: s => { s.alertsDone = s.alertsDone || {}; return s; }
+  4: s => { s.alertsDone = s.alertsDone || {}; return s; },
+  // v5: il tempo di studio diventa «tempo attivo». Le sessioni vecchie gonfiate da pause (Esci → Riprendi ore dopo)
+  // o da app lasciata aperta vengono riportate a una stima basata su risposte e lezioni.
+  5: s => fixInflatedSessions(s)
 };
+export function fixInflatedSessions(s) {
+  for (const x of s.sessions || []) {
+    if (!x.report || x.activeMs != null || x.report.wallMinutes != null) continue;
+    const est = estimateActiveMinutes(s, x);
+    if (x.report.minutes > est * 2 + 10) { x.report.wallMinutes = x.report.minutes; x.report.minutes = est; x.report.estimated = true; }
+  }
+  return s;
+}
 
 // Le procedure ufficiali si aggiornano quando cambia la loro revisione; restano spunte e date scritte da Giorgia.
 export function refreshProcedures(procs) {
