@@ -8,7 +8,7 @@ import { EIP_MODULES, EIP_LEVELS } from '../content/eipass.js';
 import { buildSession, tomorrowLine, recoveryInfo, projectCalendar, suggestedMinutesToday, studiedMinutesOn, planStats, daysToExam } from '../engine/scheduler.js';
 import { sessionReport, periodReport, procedureReport, shareText, addActive } from '../engine/reporting.js';
 import { analyzeBandoOffline } from '../engine/bando.js';
-import { AIService } from '../ai/ai.js';
+import { AIService, GeminiProvider } from '../ai/ai.js';
 import { validatePack, exportPack, acceptAIQuestions } from '../engine/packs.js';
 import { GitHubSync, syncNow, encodeLink, decodeLink, validRepo } from '../core/sync.js';
 
@@ -627,7 +627,7 @@ VIEWS.settings = () => {
     <label class="field">Modello<input data-change="setting" data-k="model" value="${esc(s.model)}"></label>
     <label class="field">Limite token al giorno<input type="number" min="1000" step="1000" data-change="setting" data-k="dailyTokenBudget" value="${s.dailyTokenBudget}"></label>
     <p class="muted small">Usati oggi: ${status.used} su ${status.budget}. Le risposte uguali vengono riusate dalla cache senza costi. La chiave resta solo su questo dispositivo e non viene inclusa nei backup. Se il modello indicato viene dismesso da Google, l'app ne sceglie da sola uno equivalente.</p>
-    ${s.aiMode === 'on' && s.apiKey ? '<button class="btn" data-act="aiTest">Prova la connessione</button>' : ''}${ui.aiTest ? `<p class="notice">${esc(ui.aiTest)}</p>` : ''}</section>
+    ${s.aiMode === 'on' && s.apiKey ? '<div class="actions"><button class="btn" data-act="aiTest">Prova la connessione</button><button class="btn" data-act="aiDiag">Perché è lenta?</button></div>' : ''}${ui.aiTest ? `<p class="notice">${esc(ui.aiTest)}</p>` : ''}${ui.aiDiagBest ? `<button class="btn primary" data-act="aiUseModel">Usa ${esc(ui.aiDiagBest)}</button>` : ''}</section>
   <section><h2>Notifiche push</h2>
     <p>Arrivano anche ad app chiusa: promemoria giornaliero e novità dalle fonti ufficiali. Richiedono l'app pubblicata su GitHub (vedi GUIDA.md). Su iPhone, prima aggiungi l'app alla schermata Home.</p>
     ${ONLINE_APP ? `<details><summary>Le notifiche sono già attive su un altro dispositivo</summary><p class="muted small">Incolla qui i valori VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY usati sull'altro dispositivo (li trovi nella sua schermata di configurazione o nel file salvato), poi premi «Configura».</p>
@@ -781,7 +781,20 @@ A.reportQ = d => { const note = prompt('Cosa non va in questa domanda? (risposta
 A.copyReports = async () => { const t = S().reports.map(r => { const q = questionById(S(), r.qid); return `[${fmtDate(r.at)}] ${r.qid} – ${q ? q.text : '?'}\n→ ${r.note}`; }).join('\n\n'); await copyText(t, 'Segnalazioni copiate.'); };
 A.checkSource = d => { store.mutate(s => { s.sourceChecks[d.id] = Date.now(); }); toast('Fonte segnata come verificata oggi.'); render(); };
 A.copyVal = async d => copyText(d.v, 'Copiato.');
-A.aiTest = async () => { ui.aiTest = 'Provo…'; render(); const t0 = Date.now(); const r = await ai.run('explain', { topic: 'prova di connessione ' + Date.now(), lesson: 'Rispondi solo: OK' }); const sec = ((Date.now() - t0) / 1000).toFixed(1).replace('.', ','); ui.aiTest = r.ok ? `Connessione riuscita (modello: ${S().settings.model}, risposta in ${sec} secondi).` : `Non funziona: ${r.reason}.`; render(); };
+A.aiDiag = async () => {
+  const s = S().settings; ui.aiTest = 'Misuro… (può servire un minuto)'; render();
+  const p = new GeminiProvider({ apiKey: s.apiKey, model: s.model });
+  const d = await p.diagnose();
+  const sec = ms => (ms / 1000).toFixed(1).replace('.', ',') + ' s';
+  const lines = [`Collegamento a Google: ${d.network == null ? 'non riuscito' : sec(d.network)}.`];
+  for (const m of d.models) lines.push(m.error ? `${m.model}: ${m.error} dopo ${sec(m.ms)}.` : `${m.model}: risposta in ${sec(m.ms)}, ragionamento interno ${m.thoughts} token${m.variant ? '' : ' (il modello non accetta il ragionamento ridotto)'}.`);
+  const best = d.models.filter(m => !m.error).sort((a, b) => a.ms - b.ms)[0];
+  ui.aiDiagBest = best && best.model !== s.model && best.ms < (d.models.find(m => m.model === s.model)?.ms ?? Infinity) / 2 ? best.model : null;
+  if (d.network != null && d.network > 5000) lines.push('La connessione internet è lenta: il problema è la rete, non l\'AI.');
+  ui.aiTest = lines.join(' '); render();
+};
+A.aiUseModel = () => { const m = ui.aiDiagBest; store.mutate(s => { s.settings.model = m; }); ui.aiDiagBest = null; ui.aiTest = `Ora uso ${m}. Premi «Prova la connessione» per controllare.`; render(); };
+A.aiTest = async () => { ui.aiTest = 'Provo…'; render(); const t0 = Date.now(); const r = await ai.run('explain', { topic: 'prova di connessione ' + Date.now(), lesson: 'Rispondi solo: OK' }); const sec = ((Date.now() - t0) / 1000).toFixed(1).replace('.', ','); ui.aiTest = r.ok ? `Connessione riuscita: ha risposto ${r.served || S().settings.model} in ${sec} secondi${r.thoughts ? ` (ragionamento interno: ${r.thoughts} token)` : ''}.${+sec.replace(',', '.') > 10 ? (/lite/.test(S().settings.model) ? ' È lento: probabilmente i server di Google sono carichi in questo momento, riprova più tardi.' : ' È lento: prova a scrivere gemini-flash-lite-latest nel campo Modello.') : ''}` : `Non funziona: ${r.reason}.`; render(); };
 A.genQuestions = async () => {
   const text = (document.getElementById('mat-text').value || '').trim(); ui.matText = text; ui.matSrc = document.getElementById('mat-src').value.trim();
   const topic = document.getElementById('mat-topic').value, n = +document.getElementById('mat-n').value;

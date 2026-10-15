@@ -115,3 +115,16 @@ test('AI veloce: chiede il ragionamento minimo e, se il modello non lo accetta, 
   let n = 0; p = new GeminiProvider({ apiKey: 'k', model: 'x-flash', fetchFn: async () => { n++; return { ok: false, status: 400, text: async () => 'API key not valid' }; } });
   await assert.rejects(p.generate({ system: 's', prompt: 'p' })); assert.equal(n, 1);
 });
+
+test('diagnosi AI: misura rete, modello in uso e Flash-Lite, con i token di ragionamento', async () => {
+  const { GeminiProvider } = await import('../src/ai/ai.js');
+  let clock = 0; const now = () => clock;
+  const fetchFn = async (url, o) => {
+    if (url.includes('/models?')) { clock += 300; return { ok: true, status: 200, json: async () => ({ models: [{ name: 'models/gemini-flash-latest', supportedGenerationMethods: ['generateContent'] }, { name: 'models/gemini-flash-lite-latest', supportedGenerationMethods: ['generateContent'] }] }) }; }
+    const lite = url.includes('lite'); clock += lite ? 1200 : 34000;
+    return { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: 'OK' }] } }], usageMetadata: { thoughtsTokenCount: lite ? 0 : 2400 } }) };
+  };
+  const d = await new GeminiProvider({ apiKey: 'k', model: 'gemini-flash-latest', fetchFn }).diagnose(now);
+  assert.equal(d.network, 300);
+  assert.deepEqual(d.models.map(m => [m.model, m.ms, m.thoughts]), [['gemini-flash-latest', 34000, 2400], ['gemini-flash-lite-latest', 1200, 0]]);
+});

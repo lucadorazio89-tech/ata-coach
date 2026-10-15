@@ -9,9 +9,10 @@ export class OfflineProvider {
   async generate() { throw new AIUnavailable('offline'); }
 }
 
-// Google Gemini (AI Studio). Default: alias "gemini-flash-latest", che punta sempre al Flash più recente.
+// Google Gemini (AI Studio). Default: alias "gemini-flash-lite-latest", che punta sempre al Flash-Lite più recente:
+// per le richieste brevi dell'app è il più rapido (il Flash più nuovo, appena uscito, può avere decine di secondi di coda).
 // Se il modello configurato non esiste più (404), interroga l'elenco dei modelli e ne sceglie uno Flash funzionante.
-export const MODEL_DEFAULT = 'gemini-flash-latest';
+export const MODEL_DEFAULT = 'gemini-flash-lite-latest';
 export function pickModel(models) {
   const ok = models.filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => m.name.replace(/^models\//, ''));
   const score = n => (n.includes('flash') ? 100 : 0) - (n.includes('lite') ? 5 : 0) - (/preview|exp|image|tts|live|audio|embedding|robotics/.test(n) ? 50 : 0) + (parseFloat((n.match(/(\d+(\.\d+)?)/) || [0, 0])[1]) || 0);
@@ -53,6 +54,32 @@ export class GeminiProvider {
       if (!r.ok) return null; const d = await r.json(); return pickModel(d.models || []);
     } catch { return null; }
   }
+  // Diagnosi della lentezza: misura la rete (elenco modelli) e una risposta minima per il modello in uso
+  // e per l'alternativa Flash-Lite, leggendo quanti token di ragionamento Google ha usato davvero.
+  async diagnose(now = () => Date.now()) {
+    const out = { network: null, models: [] };
+    let names = [];
+    try {
+      const t0 = now();
+      const r = await this.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': this.apiKey } });
+      out.network = now() - t0;
+      if (r.ok) names = ((await r.json()).models || []).filter(m => (m.supportedGenerationMethods || []).includes('generateContent')).map(m => m.name.replace(/^models\//, ''));
+    } catch { out.network = null; }
+    const lite = names.includes('gemini-flash-lite-latest') ? 'gemini-flash-lite-latest' : names.filter(n => /flash-lite/.test(n) && !/preview|exp|image|tts|live|audio/.test(n)).sort().pop();
+    const candidates = [...new Set([this.model, lite].filter(Boolean))];
+    for (const m of candidates) {
+      const body = { contents: [{ role: 'user', parts: [{ text: 'Rispondi solo con la parola: OK' }] }], generationConfig: { maxOutputTokens: 300, temperature: 0 } };
+      const t0 = now();
+      try {
+        const res = await this.callFast(m, body);
+        const ms = now() - t0;
+        if (!res.ok) { out.models.push({ model: m, ms, error: `errore ${res.status}` }); continue; }
+        const d = await res.json();
+        out.models.push({ model: m, ms, thoughts: d.usageMetadata?.thoughtsTokenCount ?? 0, variant: THINKING_VARIANTS[thinkingOk[m] ?? 0] });
+      } catch (e) { out.models.push({ model: m, ms: now() - t0, error: e.reason || 'errore' }); }
+    }
+    return out;
+  }
   async generate({ system, prompt, maxTokens = 400, json = false, file = null }) {
     if (!this.apiKey) throw new AIUnavailable('chiave API mancante');
     const parts = [{ text: prompt }];
@@ -72,7 +99,8 @@ export class GeminiProvider {
     if (!res.ok) throw new AIUnavailable(`errore ${res.status}`);
     const data = await res.json();
     const text = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
-    return { text, tokensIn: data.usageMetadata?.promptTokenCount ?? estimateTokens(system + prompt), tokensOut: data.usageMetadata?.candidatesTokenCount ?? estimateTokens(text) };
+    return { text, tokensIn: data.usageMetadata?.promptTokenCount ?? estimateTokens(system + prompt), tokensOut: data.usageMetadata?.candidatesTokenCount ?? estimateTokens(text),
+      served: data.modelVersion || this.model, thoughts: data.usageMetadata?.thoughtsTokenCount ?? 0 };   // per la diagnosi della velocità
   }
 }
 
@@ -117,7 +145,7 @@ export class AIService {
       state.aiLog.push({ id: uid('ai'), at: Date.now(), task: taskName, tokensIn: r.tokensIn, tokensOut: r.tokensOut, cached: false, provider: provider.name });
       this.trimCache(state);
       this.persist();
-      return { ok: true, cached: false, ...output };
+      return { ok: true, cached: false, served: r.served, thoughts: r.thoughts, ...output };
     } catch (e) {
       return { ok: false, reason: e instanceof AIUnavailable ? e.reason : 'errore imprevisto' };
     }

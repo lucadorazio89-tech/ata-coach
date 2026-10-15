@@ -35,7 +35,7 @@ export function emptyState() {
     notifications: [],          // { id, at, text, read }
     aiLog: [],                  // { at, task, tokensIn, tokensOut, cached, provider }
     aiCache: {},                // hash -> { at, output }
-    settings: { aiMode: 'off', provider: 'gemini', model: 'gemini-flash-latest', apiKey: '', dailyTokenBudget: 20000, notifications: false },
+    settings: { aiMode: 'off', provider: 'gemini', model: 'gemini-flash-lite-latest', apiKey: '', dailyTokenBudget: 20000, notifications: false },
     current: null               // sessione in corso (per "continua da dove ero")
   };
 }
