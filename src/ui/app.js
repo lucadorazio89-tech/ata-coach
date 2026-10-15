@@ -781,7 +781,7 @@ A.reportQ = d => { const note = prompt('Cosa non va in questa domanda? (risposta
 A.copyReports = async () => { const t = S().reports.map(r => { const q = questionById(S(), r.qid); return `[${fmtDate(r.at)}] ${r.qid} – ${q ? q.text : '?'}\n→ ${r.note}`; }).join('\n\n'); await copyText(t, 'Segnalazioni copiate.'); };
 A.checkSource = d => { store.mutate(s => { s.sourceChecks[d.id] = Date.now(); }); toast('Fonte segnata come verificata oggi.'); render(); };
 A.copyVal = async d => copyText(d.v, 'Copiato.');
-A.aiTest = async () => { ui.aiTest = 'Provo…'; render(); const r = await ai.run('explain', { topic: 'prova di connessione ' + Date.now(), lesson: 'Rispondi solo: OK' }); ui.aiTest = r.ok ? `Connessione riuscita (modello: ${S().settings.model}).` : `Non funziona: ${r.reason}.`; render(); };
+A.aiTest = async () => { ui.aiTest = 'Provo…'; render(); const t0 = Date.now(); const r = await ai.run('explain', { topic: 'prova di connessione ' + Date.now(), lesson: 'Rispondi solo: OK' }); const sec = ((Date.now() - t0) / 1000).toFixed(1).replace('.', ','); ui.aiTest = r.ok ? `Connessione riuscita (modello: ${S().settings.model}, risposta in ${sec} secondi).` : `Non funziona: ${r.reason}.`; render(); };
 A.genQuestions = async () => {
   const text = (document.getElementById('mat-text').value || '').trim(); ui.matText = text; ui.matSrc = document.getElementById('mat-src').value.trim();
   const topic = document.getElementById('mat-topic').value, n = +document.getElementById('mat-n').value;

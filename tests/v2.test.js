@@ -93,3 +93,25 @@ test('monitor: "ata" non scatta su parole come "giornata"', () => {
   const links = extractLinks(html, 'https://x.it/', ['ata']);
   assert.equal(links.length, 1); assert.equal(links[0].url, 'https://x.it/b');
 });
+
+test('AI veloce: chiede il ragionamento minimo e, se il modello non lo accetta, prova le alternative', async () => {
+  const { GeminiProvider } = await import('../src/ai/ai.js');
+  const ok = { ok: true, status: 200, json: async () => ({ candidates: [{ content: { parts: [{ text: 'ciao' }] } }] }) };
+  // modello nuovo: accetta thinkingLevel al primo colpo
+  let bodies = [];
+  let p = new GeminiProvider({ apiKey: 'k', model: 'gemini-nuovo-flash', fetchFn: async (u, o) => { bodies.push(JSON.parse(o.body)); return ok; } });
+  await p.generate({ system: 's', prompt: 'p' });
+  assert.equal(bodies.length, 1); assert.deepEqual(bodies[0].generationConfig.thinkingConfig, { thinkingLevel: 'low' });
+  // modello 2.5: rifiuta thinkingLevel, accetta thinkingBudget 0; la seconda richiesta va diretta
+  bodies = [];
+  const f25 = async (u, o) => { const b = JSON.parse(o.body); bodies.push(b);
+    return b.generationConfig.thinkingConfig?.thinkingLevel ? { ok: false, status: 400, text: async () => 'Invalid thinking level for this model' } : ok; };
+  p = new GeminiProvider({ apiKey: 'k', model: 'gemini-2.5-flash', fetchFn: f25 });
+  assert.equal((await p.generate({ system: 's', prompt: 'p' })).text, 'ciao');
+  assert.deepEqual(bodies.map(b => b.generationConfig.thinkingConfig), [{ thinkingLevel: 'low' }, { thinkingBudget: 0 }]);
+  bodies = []; await p.generate({ system: 's', prompt: 'p2' });
+  assert.equal(bodies.length, 1, 'ricorda la variante giusta');
+  // 400 per altri motivi (chiave errata): nessun tentativo in più
+  let n = 0; p = new GeminiProvider({ apiKey: 'k', model: 'x-flash', fetchFn: async () => { n++; return { ok: false, status: 400, text: async () => 'API key not valid' }; } });
+  await assert.rejects(p.generate({ system: 's', prompt: 'p' })); assert.equal(n, 1);
+});

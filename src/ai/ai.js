@@ -17,11 +17,35 @@ export function pickModel(models) {
   const score = n => (n.includes('flash') ? 100 : 0) - (n.includes('lite') ? 5 : 0) - (/preview|exp|image|tts|live|audio|embedding|robotics/.test(n) ? 50 : 0) + (parseFloat((n.match(/(\d+(\.\d+)?)/) || [0, 0])[1]) || 0);
   return ok.sort((a, b) => score(b) - score(a))[0] || null;
 }
+// Ragionamento interno al minimo. Le richieste di ATA Coach sono brevi e guidate: senza indicazioni i Flash recenti
+// ragionano a livello «medio/alto» prima di rispondere e l'attesa arriva a decine di secondi.
+// Gemini 3 e successivi: thinkingLevel 'low'. Gemini 2.5: thinkingBudget 0. Se il modello non accetta nessuno dei due, niente.
+export const THINKING_VARIANTS = [{ thinkingLevel: 'low' }, { thinkingBudget: 0 }, null];
+const thinkingOk = {};                                   // modello -> variante accettata (per non riprovare ogni volta)
+export const AI_TIMEOUT_MS = 45000;
 export class GeminiProvider {
   constructor({ apiKey, model = MODEL_DEFAULT, fetchFn = null, onModelChange = null }) { this.name = 'gemini'; this.apiKey = apiKey; this.model = model || MODEL_DEFAULT; this.fetch = fetchFn || ((...a) => fetch(...a)); this.onModelChange = onModelChange; }
   async call(model, body) {
-    try { return await this.fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.apiKey }, body: JSON.stringify(body) }); }
-    catch { throw new AIUnavailable('rete non disponibile'); }
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = ctrl ? setTimeout(() => ctrl.abort(), AI_TIMEOUT_MS) : null;
+    try { return await this.fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': this.apiKey }, body: JSON.stringify(body), ...(ctrl ? { signal: ctrl.signal } : {}) }); }
+    catch (e) { throw new AIUnavailable(e?.name === 'AbortError' ? 'Google non ha risposto in tempo, riprova' : 'rete non disponibile'); }
+    finally { if (timer) clearTimeout(timer); }
+  }
+  // Prova le varianti di «ragionamento minimo» finché il modello ne accetta una; ricorda quella buona.
+  async callFast(model, body) {
+    let i = thinkingOk[model] ?? 0, res;
+    for (;;) {
+      const v = THINKING_VARIANTS[i];
+      const b = { ...body, generationConfig: { ...body.generationConfig, ...(v ? { thinkingConfig: v } : {}) } };
+      res = await this.call(model, b);
+      if (res.status === 400 && i < THINKING_VARIANTS.length - 1) {
+        let t = ''; try { t = await res.text(); } catch { /* corpo non leggibile */ }
+        if (/thinking/i.test(t)) { i++; continue; }
+      }
+      if (res.ok) thinkingOk[model] = i;
+      return res;
+    }
   }
   async discover() {
     try {
@@ -35,12 +59,12 @@ export class GeminiProvider {
     if (file) parts.unshift({ inlineData: { mimeType: file.mimeType, data: file.data } });
     const body = { systemInstruction: { parts: [{ text: system }] }, contents: [{ role: 'user', parts }],
       generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3, ...(json ? { responseMimeType: 'application/json' } : {}) } };
-    let res = await this.call(this.model, body);
+    let res = await this.callFast(this.model, body);
     if (res.status === 404) {                      // modello dismesso: ne cerco uno valido
       const m = await this.discover();
       if (!m || m === this.model) throw new AIUnavailable('nessun modello disponibile');
       this.model = m; if (this.onModelChange) this.onModelChange(m);
-      res = await this.call(m, body);
+      res = await this.callFast(m, body);
     }
     if (res.status === 400) throw new AIUnavailable('richiesta non valida o chiave errata');
     if (res.status === 403) throw new AIUnavailable('chiave API non autorizzata');
