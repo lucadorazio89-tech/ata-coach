@@ -1,13 +1,13 @@
 {
  "schema": "ata-coach-feed/1",
- "updatedAt": "2026-10-16T09:55:03.369Z",
+ "updatedAt": "2026-10-16T15:23:53.396Z",
  "note": "Link trovati sui siti ufficiali del Ministero e dell'Ufficio scolastico. Tocca un titolo per aprire la pagina originale.",
  "sources": [
   {
    "id": "mim-graduatorie-ata",
    "name": "Ministero – pagina Graduatorie ATA",
    "url": "https://www.istruzione.it/graduatorie-ata/",
-   "checkedAt": "2026-10-16T09:54:59.649Z",
+   "checkedAt": "2026-10-16T15:23:50.410Z",
    "ok": true,
    "found": 0
   },
@@ -15,7 +15,7 @@
    "id": "mim-home",
    "name": "Ministero – notizie in home page",
    "url": "https://www.mim.gov.it/",
-   "checkedAt": "2026-10-16T09:55:00.248Z",
+   "checkedAt": "2026-10-16T15:23:50.984Z",
    "ok": true,
    "found": 0
   },
@@ -23,20 +23,36 @@
    "id": "usr-veneto",
    "name": "Ufficio scolastico regionale del Veneto",
    "url": "https://istruzioneveneto.gov.it/",
-   "checkedAt": "2026-10-16T09:55:00.878Z",
+   "checkedAt": "2026-10-16T15:23:51.595Z",
    "ok": true,
-   "found": 2
+   "found": 3
   },
   {
    "id": "uat-padova",
    "name": "Ufficio scolastico di Padova e Rovigo",
    "url": "https://padova.istruzioneveneto.gov.it/",
-   "checkedAt": "2026-10-16T09:55:02.121Z",
+   "checkedAt": "2026-10-16T15:23:52.502Z",
    "ok": true,
    "found": 9
   }
  ],
  "items": [
+  {
+   "title": "AVVISO – Nomine a.s. 2026/27: Assunzioni in ruolo del personale docente della scuola dell’infanzia e della scuola secondaria di II grado – ESITO della procedura di assegnazione della provincia di cui all’Avviso prot. AOO",
+   "url": "https://istruzioneveneto.gov.it/20261016_43462/",
+   "source": "Ufficio scolastico regionale del Veneto",
+   "kind": "notizia",
+   "id": "pdC8yMDI2MTAxNl80MzQ2Mi8",
+   "firstSeen": "2026-10-16T15:23:53.396Z"
+  },
+  {
+   "title": "Conferimento supplenze al personale docente ed educativo per l’ a.s. 2026/27. Bollettino XI turno di nomina.",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/10/16/conferimento-supplenze-al-personale-docente-ed-educativo-per-l-a-s-2026-27-bollettino-xi-turno-di-nomina/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "notizia",
+   "id": "pLXR1cm5vLWRpLW5vbWluYS8",
+   "firstSeen": "2026-10-16T15:23:53.396Z"
+  },
   {
    "title": "Personale ATA – DSGA",
    "url": "https://istruzioneveneto.gov.it/istruzione/personale-ata/",
