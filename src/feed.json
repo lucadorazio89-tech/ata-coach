@@ -1,13 +1,13 @@
 {
  "schema": "ata-coach-feed/1",
- "updatedAt": "2026-10-20T15:40:30.199Z",
+ "updatedAt": "2026-10-21T10:16:37.470Z",
  "note": "Link trovati sui siti ufficiali del Ministero e dell'Ufficio scolastico. Tocca un titolo per aprire la pagina originale.",
  "sources": [
   {
    "id": "mim-graduatorie-ata",
    "name": "Ministero – pagina Graduatorie ATA",
    "url": "https://www.istruzione.it/graduatorie-ata/",
-   "checkedAt": "2026-10-20T15:40:27.021Z",
+   "checkedAt": "2026-10-21T10:16:33.327Z",
    "ok": true,
    "found": 0
   },
@@ -15,7 +15,7 @@
    "id": "mim-home",
    "name": "Ministero – notizie in home page",
    "url": "https://www.mim.gov.it/",
-   "checkedAt": "2026-10-20T15:40:27.601Z",
+   "checkedAt": "2026-10-21T10:16:34.259Z",
    "ok": true,
    "found": 0
   },
@@ -23,7 +23,7 @@
    "id": "usr-veneto",
    "name": "Ufficio scolastico regionale del Veneto",
    "url": "https://istruzioneveneto.gov.it/",
-   "checkedAt": "2026-10-20T15:40:28.168Z",
+   "checkedAt": "2026-10-21T10:16:35.358Z",
    "ok": true,
    "found": 2
   },
@@ -31,12 +31,20 @@
    "id": "uat-padova",
    "name": "Ufficio scolastico di Padova e Rovigo",
    "url": "https://padova.istruzioneveneto.gov.it/",
-   "checkedAt": "2026-10-20T15:40:29.138Z",
+   "checkedAt": "2026-10-21T10:16:36.371Z",
    "ok": true,
-   "found": 9
+   "found": 10
   }
  ],
  "items": [
+  {
+   "title": "Assegnazione di incarico annuale per lo svolgimento di funzioni di Direttore dei Servizi Generali e Amministrativi (profilo ATA previsto dal CCNL Comparto Istruzione e Ricerca) – anno scolastico 2026-2027 – Istituto Comp",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/10/21/assegnazione-di-incarico-annuale-per-lo-svolgimento-di-funzioni-di-direttore-dei-servizi-generali-e-amministrativi-profilo-ata-previsto-dal-ccnl-comparto-istruzione-e-ricerca-anno-scolasti/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "requisiti",
+   "id": "yY2EtYW5uby1zY29sYXN0aS8",
+   "firstSeen": "2026-10-21T10:16:37.470Z"
+  },
   {
    "title": "AVVISO PUBBLICO per il conferimento di incarico per lo svolgimento di funzioni di Direttore dei Servizi Generali e Amministrativi (profilo ATA previsto dal CCNL Comparto Istruzione e Ricerca) anno scolastico 2026/27 pres",
    "url": "https://padova.istruzioneveneto.gov.it/2026/10/20/avviso-pubblico-per-il-conferimento-di-incarico-per-lo-svolgimento-di-funzioni-di-direttore-dei-servizi-generali-e-amministrativi-profilo-ata-previsto-dal-ccnl-comparto-istruzione-e-ricerca-anno-sco/",
