@@ -1,13 +1,13 @@
 {
  "schema": "ata-coach-feed/1",
- "updatedAt": "2026-10-23T15:46:29.116Z",
+ "updatedAt": "2026-10-24T14:37:39.962Z",
  "note": "Link trovati sui siti ufficiali del Ministero e dell'Ufficio scolastico. Tocca un titolo per aprire la pagina originale.",
  "sources": [
   {
    "id": "mim-graduatorie-ata",
    "name": "Ministero – pagina Graduatorie ATA",
    "url": "https://www.istruzione.it/graduatorie-ata/",
-   "checkedAt": "2026-10-23T15:46:25.452Z",
+   "checkedAt": "2026-10-24T14:37:35.206Z",
    "ok": true,
    "found": 0
   },
@@ -15,7 +15,7 @@
    "id": "mim-home",
    "name": "Ministero – notizie in home page",
    "url": "https://www.mim.gov.it/",
-   "checkedAt": "2026-10-23T15:46:26.134Z",
+   "checkedAt": "2026-10-24T14:37:36.045Z",
    "ok": true,
    "found": 0
   },
@@ -23,7 +23,7 @@
    "id": "usr-veneto",
    "name": "Ufficio scolastico regionale del Veneto",
    "url": "https://istruzioneveneto.gov.it/",
-   "checkedAt": "2026-10-23T15:46:27.104Z",
+   "checkedAt": "2026-10-24T14:37:37.709Z",
    "ok": true,
    "found": 1
   },
@@ -31,9 +31,9 @@
    "id": "uat-padova",
    "name": "Ufficio scolastico di Padova e Rovigo",
    "url": "https://padova.istruzioneveneto.gov.it/",
-   "checkedAt": "2026-10-23T15:46:27.981Z",
+   "checkedAt": "2026-10-24T14:37:38.877Z",
    "ok": true,
-   "found": 9
+   "found": 8
   }
  ],
  "items": [
