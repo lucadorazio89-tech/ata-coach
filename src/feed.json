@@ -1,13 +1,13 @@
 {
  "schema": "ata-coach-feed/1",
- "updatedAt": "2026-10-30T21:33:30.824Z",
+ "updatedAt": "2026-11-02T13:36:48.413Z",
  "note": "Link trovati sui siti ufficiali del Ministero e dell'Ufficio scolastico. Tocca un titolo per aprire la pagina originale.",
  "sources": [
   {
    "id": "mim-graduatorie-ata",
    "name": "Ministero – pagina Graduatorie ATA",
    "url": "https://www.istruzione.it/graduatorie-ata/",
-   "checkedAt": "2026-10-30T21:33:26.424Z",
+   "checkedAt": "2026-11-02T13:36:45.229Z",
    "ok": true,
    "found": 0
   },
@@ -15,7 +15,7 @@
    "id": "mim-home",
    "name": "Ministero – notizie in home page",
    "url": "https://www.mim.gov.it/",
-   "checkedAt": "2026-10-30T21:33:27.335Z",
+   "checkedAt": "2026-11-02T13:36:45.743Z",
    "ok": true,
    "found": 0
   },
@@ -23,20 +23,28 @@
    "id": "usr-veneto",
    "name": "Ufficio scolastico regionale del Veneto",
    "url": "https://istruzioneveneto.gov.it/",
-   "checkedAt": "2026-10-30T21:33:28.509Z",
+   "checkedAt": "2026-11-02T13:36:46.525Z",
    "ok": true,
-   "found": 1
+   "found": 2
   },
   {
    "id": "uat-padova",
    "name": "Ufficio scolastico di Padova e Rovigo",
    "url": "https://padova.istruzioneveneto.gov.it/",
-   "checkedAt": "2026-10-30T21:33:29.571Z",
+   "checkedAt": "2026-11-02T13:36:47.491Z",
    "ok": true,
-   "found": 8
+   "found": 7
   }
  ],
  "items": [
+  {
+   "title": "AVVISO – Nomine a.s. 2026/27: Assunzioni in ruolo del personale docente della scuola dell’infanzia e primaria e della scuola secondaria di I e II grado – Avvio fase 1 – Turno 20 – SCORRIMENTO Graduatorie procedure concor",
+   "url": "https://istruzioneveneto.gov.it/20261102_43676/",
+   "source": "Ufficio scolastico regionale del Veneto",
+   "kind": "notizia",
+   "id": "pdC8yMDI2MTEwMl80MzY3Ni8",
+   "firstSeen": "2026-11-02T13:36:48.413Z"
+  },
   {
    "title": "3° AVVISO PUBBLICO PER IL CONFERIMENTO DI INCARICO PER LO SVOLGIMENTO FINO AL 31.08.2027 DI FUNZIONI DI DIRETTORE DEI SERVIZI GENERALI E AMMINISTRATIVI (PROFILO ATA PREVISTO DAL CCNL COMPARTO ISTRUZIONE E RICERCA) PRESSO",
    "url": "https://padova.istruzioneveneto.gov.it/2026/10/30/3-avviso-pubblico-per-il-conferimento-di-incarico-per-lo-svolgimento-fino-al-31-08-2027-di-funzioni-di-direttore-dei-servizi-generali-e-amministrativi-profilo-ata-previsto-dal-ccnl-comparto-ist/",
