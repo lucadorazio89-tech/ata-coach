@@ -1,13 +1,13 @@
 {
  "schema": "ata-coach-feed/1",
- "updatedAt": "2026-11-17T14:35:08.861Z",
+ "updatedAt": "2026-11-18T14:12:03.073Z",
  "note": "Link trovati sui siti ufficiali del Ministero e dell'Ufficio scolastico. Tocca un titolo per aprire la pagina originale.",
  "sources": [
   {
    "id": "mim-graduatorie-ata",
    "name": "Ministero – pagina Graduatorie ATA",
    "url": "https://www.istruzione.it/graduatorie-ata/",
-   "checkedAt": "2026-11-17T14:35:03.179Z",
+   "checkedAt": "2026-11-18T14:11:58.690Z",
    "ok": true,
    "found": 0
   },
@@ -15,7 +15,7 @@
    "id": "mim-home",
    "name": "Ministero – notizie in home page",
    "url": "https://www.mim.gov.it/",
-   "checkedAt": "2026-11-17T14:35:04.164Z",
+   "checkedAt": "2026-11-18T14:11:59.622Z",
    "ok": true,
    "found": 0
   },
@@ -23,7 +23,7 @@
    "id": "usr-veneto",
    "name": "Ufficio scolastico regionale del Veneto",
    "url": "https://istruzioneveneto.gov.it/",
-   "checkedAt": "2026-11-17T14:35:06.303Z",
+   "checkedAt": "2026-11-18T14:12:00.752Z",
    "ok": true,
    "found": 2
   },
@@ -31,12 +31,20 @@
    "id": "uat-padova",
    "name": "Ufficio scolastico di Padova e Rovigo",
    "url": "https://padova.istruzioneveneto.gov.it/",
-   "checkedAt": "2026-11-17T14:35:07.511Z",
+   "checkedAt": "2026-11-18T14:12:01.797Z",
    "ok": true,
-   "found": 6
+   "found": 7
   }
  ],
  "items": [
+  {
+   "title": "Conferimento supplenze al personale docente ed educativo per l’ a.s. 2026/27. Bollettino XX turno di nomina.",
+   "url": "https://padova.istruzioneveneto.gov.it/2026/11/18/conferimento-supplenze-al-personale-docente-ed-educativo-per-l-a-s-2026-27-bollettino-xx-turno-di-nomina/",
+   "source": "Ufficio scolastico di Padova e Rovigo",
+   "kind": "notizia",
+   "id": "4LXR1cm5vLWRpLW5vbWluYS8",
+   "firstSeen": "2026-11-18T14:12:03.073Z"
+  },
   {
    "title": "Assegnazione di incarico annuale per lo svolgimento di funzioni di Direttore dei Servizi Generali e Amministrativi (profilo ATA previsto dal CCNL Comparto Istruzione e Ricerca) – anno scolastico 2026-2027 – Istituto Comp",
    "url": "https://padova.istruzioneveneto.gov.it/2026/11/17/assegnazione-di-incarico-annuale-per-lo-svolgimento-di-funzioni-di-direttore-dei-servizi-generali-e-amministrativi-profilo-ata-previsto-dal-ccnl-comparto-istruzione-e-ricerca-anno-scolasti-3/",
